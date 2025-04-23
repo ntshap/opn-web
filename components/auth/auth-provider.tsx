@@ -38,6 +38,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Check authentication status on mount and when pathname changes
   useEffect(() => {
+    // Skip auth check for login page to prevent loops
+    if (pathname === '/login') {
+      console.log('Auth provider: Skipping auth check on login page');
+      return;
+    }
+
     const checkAuthentication = () => {
       try {
         const authenticated = isAuthenticated()

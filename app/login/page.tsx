@@ -42,13 +42,20 @@ export default function LoginPage() {
       return;
     }
 
-    // Check if we already have a token
-    const token = localStorage.getItem('token');
-    if (token) {
-      console.log('Already authenticated, redirecting to dashboard');
-      window.location.href = '/dashboard';
-      return;
-    }
+    // Add a small delay to prevent immediate checks
+    const checkAuthTimer = setTimeout(() => {
+      // Check if we already have a token
+      const token = localStorage.getItem('token');
+      const authToken = localStorage.getItem('auth_token');
+
+      if (token || authToken) {
+        console.log('Already authenticated, redirecting to dashboard');
+        // Use router.push instead of window.location for better Next.js integration
+        router.push('/dashboard');
+      }
+    }, 500);
+
+    return () => clearTimeout(checkAuthTimer);
 
     // Check for error parameter in URL
     if (typeof window !== 'undefined') {
@@ -117,7 +124,10 @@ export default function LoginPage() {
 
       // Redirect
       console.log("Login successful, redirecting to:", redirectPath)
-      router.push(redirectPath)
+
+      // Use window.location.href for a full page refresh to ensure tokens are properly loaded
+      window.location.href = redirectPath;
+      // Don't use router.push here as it might not fully reload the page
 
     } catch (error: any) {
       console.error('Login error:', error)

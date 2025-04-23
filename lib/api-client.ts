@@ -25,21 +25,35 @@ if (process.env.NODE_ENV === 'development') {
 // Add request interceptor to handle authentication
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => { // Use InternalAxiosRequestConfig
+    // Skip authentication for login and refresh endpoints
+    const isAuthEndpoint = config.url && (
+      config.url.includes('/auth/token') ||
+      config.url.includes('/auth/refresh')
+    );
+
+    if (isAuthEndpoint) {
+      console.log(`[ApiClient] Skipping auth header for auth endpoint: ${config.url}`);
+      return config;
+    }
+
     // Get token from auth-utils (imported above)
-    // const { getAuthToken } = require('./auth-utils') // Removed require
     const token = typeof window !== "undefined" ? getAuthToken() : null
 
     // If token exists, add it to the headers
     if (token && config.headers) { // Add check for config.headers
       config.headers.Authorization = token
-      console.log(`[ApiClient] Request to ${config.url}: Added Authorization header: ${token.substring(0, 20)}...`);
+      // Reduce console logging
+      // console.log(`[ApiClient] Request to ${config.url}: Added Authorization header`);
     } else {
-      console.warn(`[ApiClient] Request to ${config.url}: No Authorization header added - token is ${token ? 'present but headers missing' : 'missing'}`);
-      if (!token) {
-        console.warn('[ApiClient] No token available. User might not be authenticated properly.');
-      }
-      if (!config.headers) {
-        console.warn('[ApiClient] Request headers object is missing or invalid.');
+      // Only log warnings in development
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`[ApiClient] Request to ${config.url}: No Authorization header added - token is ${token ? 'present but headers missing' : 'missing'}`);
+        if (!token) {
+          console.warn('[ApiClient] No token available. User might not be authenticated properly.');
+        }
+        if (!config.headers) {
+          console.warn('[ApiClient] Request headers object is missing or invalid.');
+        }
       }
     }
 
@@ -82,7 +96,11 @@ apiClient.interceptors.response.use(
   async (error: unknown) => {
     // Cast to any to avoid TypeScript errors
     const anyError = error as any;
-    console.log('[ApiClient] Response interceptor caught an error:', error);
+
+    // Only log in development mode
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[ApiClient] Response interceptor caught an error:', error);
+    }
 
     // Check if it's a valid error object
     if (!(error instanceof Error)) {
