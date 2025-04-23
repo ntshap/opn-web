@@ -16,11 +16,20 @@ export const isBackendOnline = async (): Promise<boolean> => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
+    // Add cache-busting parameter to prevent caching
+    const timestamp = new Date().getTime();
+
     // Use the /auth/token endpoint which we know exists
     // We're just checking if the server responds, not trying to authenticate
-    const response = await fetch(`${API_CONFIG.BACKEND_URL}/api/v1/auth/token`, {
+    const response = await fetch(`${API_CONFIG.BACKEND_URL}/api/v1/auth/token?_=${timestamp}`, {
       method: 'HEAD', // Use HEAD request to avoid downloading the full response
       signal: controller.signal,
+      cache: 'no-store', // Don't cache the response
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
     });
 
     // Clear the timeout

@@ -55,24 +55,27 @@ export default function DirectDashboardLayout({ children }) {
         log('Checking if backend is available...');
         try {
           // Simple check to see if backend is responding
-          const response = await fetch('/api/v1/health', {
-            method: 'GET',
+          // Add cache-busting parameter to prevent caching
+          const timestamp = new Date().getTime();
+          const response = await fetch(`/api/v1/auth/token?_=${timestamp}`, {
+            method: 'HEAD',
             headers: { 'Content-Type': 'application/json' },
+            // Add timeout using AbortController
+            signal: AbortSignal.timeout(5000), // 5 second timeout
+            cache: 'no-store',
           });
 
-          const data = await response.json();
-
-          if (data.status !== 'ok') {
-            log('Backend is not available, redirecting to login with error');
-            window.location.href = '/login?error=backend_offline';
-            return;
+          // If we get any response (even 401 Unauthorized), the backend is online
+          if (response.status < 500) {
+            log('Backend is available');
+          } else {
+            // Only log the issue but continue anyway
+            log('Backend returned server error, but continuing anyway');
           }
-
-          log('Backend is available');
         } catch (error) {
+          // Only log the error but continue anyway
           log('Error checking backend: ' + error.message);
-          window.location.href = '/login?error=backend_offline';
-          return;
+          log('Continuing despite backend check failure');
         }
 
         // Not authenticated, redirect to login
