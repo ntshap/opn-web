@@ -1,5 +1,5 @@
 /**
- * API route for authentication token
+ * API route for authentication login
  * Handles login requests and forwards them to the backend
  */
 import { NextResponse } from 'next/server'
@@ -23,68 +23,68 @@ function addCorsHeaders(response: Response | NextResponse) {
 
 // OPTIONS handler for CORS preflight requests
 export async function OPTIONS() {
-  console.log('Handling OPTIONS request for auth token endpoint')
-
+  console.log('Handling OPTIONS request for auth login endpoint')
+  
   // Create a new response with 200 status
   const response = new NextResponse(null, {
     status: 200,
   })
-
+  
   // Add CORS headers
   return addCorsHeaders(response)
 }
 
-// POST /api/v1/auth/token
+// POST /api/v1/auth/login
 export async function POST(request: NextRequest) {
   try {
     // Get the request body
     const body = await request.text()
-
+    
     // Log the request (without sensitive data)
-    console.log('Auth token request received')
-
+    console.log('Auth login request received')
+    
     // Get backend URL
     const backendUrl = getBackendUrl()
-    const fullUrl = `${backendUrl}/api/v1/auth/token`
-
-    console.log(`Forwarding auth request to: ${fullUrl}`)
-
+    const fullUrl = `${backendUrl}/api/v1/auth/login`
+    
+    console.log(`Forwarding auth login request to: ${fullUrl}`)
+    
     // Forward request to backend API with timeout
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
-
+    
     const response = await fetch(fullUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Type': 'application/json',
       },
       body: body,
       signal: controller.signal
     })
-
+    
     clearTimeout(timeoutId)
-
+    
     // Get the response data
     const data = await response.json()
-
+    
     // Return the response with CORS headers
     const nextResponse = NextResponse.json(data, { status: response.status })
     return addCorsHeaders(nextResponse)
   } catch (error) {
-    console.error('Error in auth token route:', error)
-
+    console.error('Error in auth login route:', error)
+    
     // Return appropriate error response with CORS headers
     const errorResponse = new Response(
-      JSON.stringify({
+      JSON.stringify({ 
         error: 'Authentication failed',
         message: error instanceof Error ? error.message : 'Unknown error'
       }),
-      {
+      { 
         status: 500,
         headers: { 'Content-Type': 'application/json' }
       }
     )
-
+    
     return addCorsHeaders(errorResponse)
   }
 }

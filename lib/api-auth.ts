@@ -54,17 +54,19 @@ export const authApi = {
       formData.append('password', password);
       formData.append('grant_type', 'password');
 
-      // Try the primary login method first
+      // Try the primary login method first using the API proxy
       try {
         console.log('Trying primary login method...');
-        // Make API request
-        // Use the full URL as in the simple-login page
-        const response = await fetch(`${API_CONFIG.BACKEND_URL}/api/v1/auth/token`, {
+        // Make API request through the local API proxy to handle CORS properly
+        const response = await fetch(`/api/v1/auth/token`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
           },
           body: formData.toString(),
+          // Explicitly disable CORS mode to prevent preflight OPTIONS requests
+          mode: 'same-origin',
+          credentials: 'same-origin',
         });
 
         console.log('Login response status:', response.status);
@@ -88,8 +90,8 @@ export const authApi = {
         // If primary method fails, try the fallback method
         console.log('Primary login method failed, trying fallback...', primaryError);
 
-        // Try the fallback login method (JSON-based)
-        const fallbackResponse = await fetch(`${API_CONFIG.BACKEND_URL}/api/v1/auth/login`, {
+        // Try the fallback login method (JSON-based) through the local API proxy
+        const fallbackResponse = await fetch(`/api/v1/auth/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -98,6 +100,9 @@ export const authApi = {
             username,
             password,
           }),
+          // Explicitly disable CORS mode to prevent preflight OPTIONS requests
+          mode: 'same-origin',
+          credentials: 'same-origin',
         });
 
         console.log('Fallback login response status:', fallbackResponse.status);

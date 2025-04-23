@@ -9,6 +9,28 @@ export function getBackendUrl() {
   return backendUrl.endsWith('/') ? backendUrl.slice(0, -1) : backendUrl;
 }
 
+// Add CORS headers to response
+export function addCorsHeaders(response: Response | NextResponse) {
+  response.headers.set('Access-Control-Allow-Credentials', 'true');
+  response.headers.set('Access-Control-Allow-Origin', '*');
+  response.headers.set('Access-Control-Allow-Methods', 'GET,OPTIONS,POST,PUT,DELETE,PATCH');
+  response.headers.set('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
+  return response;
+}
+
+// Handle OPTIONS requests for CORS preflight
+export function handleOptionsRequest() {
+  console.log('Handling OPTIONS request for CORS preflight');
+
+  // Create a new response with 200 status
+  const response = new NextResponse(null, {
+    status: 200,
+  });
+
+  // Add CORS headers
+  return addCorsHeaders(response);
+}
+
 // Generic API route handler
 export async function handleApiRoute(
   request: NextRequest,
@@ -19,6 +41,11 @@ export async function handleApiRoute(
   } = {}
 ) {
   const { requireAuth = true, timeout = 30000 } = options;
+
+  // Handle OPTIONS requests for CORS preflight
+  if (request.method === 'OPTIONS') {
+    return handleOptionsRequest();
+  }
 
   try {
     // Get method and URL
@@ -41,10 +68,11 @@ export async function handleApiRoute(
       const authHeader = request.headers.get('authorization');
       if (!authHeader) {
         // Always return 401 if no auth header is present
-        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        const errorResponse = new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 401,
           headers: { 'Content-Type': 'application/json' }
         });
+        return addCorsHeaders(errorResponse);
       } else {
         headers['Authorization'] = authHeader;
       }
@@ -96,25 +124,28 @@ export async function handleApiRoute(
         // Try to parse as JSON
         const data = JSON.parse(backendBodyText);
         console.log(`[handleApiRoute] Successfully parsed response as JSON`);
-        return NextResponse.json(data, { status: response.status });
+        const jsonResponse = NextResponse.json(data, { status: response.status });
+        return addCorsHeaders(jsonResponse);
       } catch (jsonError) {
         console.error(`[handleApiRoute] Error parsing JSON response:`, jsonError);
         console.log(`[handleApiRoute] Returning raw text response with status ${response.status}`);
-        return new Response(backendBodyText, {
+        const textResponse = new Response(backendBodyText, {
           status: response.status,
           headers: {
             'Content-Type': contentType || 'text/plain',
           }
         });
+        return addCorsHeaders(textResponse);
       }
     } else {
       console.log(`[handleApiRoute] Returning non-JSON response with status ${response.status}`);
-      return new Response(backendBodyText, {
+      const nonJsonResponse = new Response(backendBodyText, {
         status: response.status,
         headers: {
           'Content-Type': contentType || 'text/plain',
         }
       });
+      return addCorsHeaders(nonJsonResponse);
     }
   } catch (error) {
     console.error(`Error in API route handler:`, error);
@@ -123,7 +154,7 @@ export async function handleApiRoute(
     console.error(`Error forwarding request to ${endpoint}:`, error);
 
     // Return appropriate error response
-    return new Response(
+    const errorResponse = new Response(
       JSON.stringify({
         error: 'API request failed',
         message: error instanceof Error ? error.message : 'Unknown error'
@@ -133,5 +164,6 @@ export async function handleApiRoute(
         headers: { 'Content-Type': 'application/json' }
       }
     );
+    return addCorsHeaders(errorResponse);
   }
 }
