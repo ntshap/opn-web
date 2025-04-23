@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { NetworkMonitor } from '@/components/debug/NetworkMonitor';
 import { API_CONFIG } from '@/lib/config';
 
-export default function TestImagePage() {
+export default function TestImagePageClient() {
   const [imagePath, setImagePath] = useState<string>('');
   const [debugInfo, setDebugInfo] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
