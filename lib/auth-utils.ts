@@ -72,6 +72,9 @@ export const setAuthTokens = (token: string, refreshToken?: string): void => {
     localStorage.setItem('token', token)
     localStorage.setItem('auth_token', token)
 
+    // Set the is_logged_in flag to true
+    localStorage.setItem('is_logged_in', 'true')
+
     if (refreshToken) {
       localStorage.setItem('refreshToken', refreshToken)
     }
@@ -80,12 +83,13 @@ export const setAuthTokens = (token: string, refreshToken?: string): void => {
     const cookieOptions = 'path=/;max-age=2592000;SameSite=Lax' // 30 days, more compatible SameSite
     document.cookie = `token=${token};${cookieOptions}`
     document.cookie = `auth_token=${token};${cookieOptions}`
+    document.cookie = `is_logged_in=true;${cookieOptions}`
 
     if (refreshToken) {
       document.cookie = `refreshToken=${refreshToken};${cookieOptions}`
     }
 
-    console.log('Auth tokens set successfully')
+    console.log('Auth tokens and login flag set successfully')
   } catch (error) {
     console.error('Error setting auth tokens:', error)
   }
@@ -99,11 +103,15 @@ export const removeAuthTokens = (): void => {
   localStorage.removeItem('token')
   localStorage.removeItem('auth_token')
   localStorage.removeItem('refreshToken')
+  localStorage.removeItem('is_logged_in')
 
   // Remove from cookies
   document.cookie = "token=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT"
   document.cookie = "auth_token=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT"
   document.cookie = "refreshToken=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT"
+  document.cookie = "is_logged_in=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT"
+
+  console.log('Auth tokens and login flag removed successfully')
 }
 
 // Get the authentication token

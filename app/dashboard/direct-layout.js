@@ -44,7 +44,14 @@ export default function DirectDashboardLayout({ children }) {
         const isLoggedIn = localStorage.getItem('is_logged_in') === 'true';
         log('Is logged in flag: ' + (isLoggedIn ? 'True' : 'False'));
 
-        if ((authToken || directToken) && isLoggedIn) {
+        // If we have a token but no is_logged_in flag, set it now
+        if ((authToken || directToken) && !isLoggedIn) {
+          log('Token found but no is_logged_in flag, setting it now');
+          localStorage.setItem('is_logged_in', 'true');
+        }
+
+        // Consider user authenticated if they have a token, even if is_logged_in flag is not set
+        if (authToken || directToken) {
           log('User is authenticated, showing dashboard');
           setIsAuthenticated(true);
           setIsLoading(false);
