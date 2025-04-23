@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OPN - Sistem Manajemen Acara</title>
+  <meta name="description" content="Kelola acara dan aktivitas organisasi Anda" />
+  <link rel="icon" href="/images/opn-logo.png" type="image/png" />
+  
+  <!-- Authentication check script -->
+  <script>
+    // Check if we're on a dashboard page
+    const isDashboardPage = window.location.pathname.startsWith('/dashboard');
+    
+    // Function to check if user is authenticated
+    function isAuthenticated() {
+      // Check localStorage first
+      const token = localStorage.getItem('token');
+      if (token) return true;
+      
+      // Fallback to cookies
+      const cookieToken = document.cookie.replace(/(?:(?:^|.*;\s*)token\s*\=\s*([^;]*).*$)|^.*$/, "$1");
+      return !!cookieToken;
+    }
+    
+    // If on dashboard page and not authenticated, redirect to login
+    if (isDashboardPage && !isAuthenticated()) {
+      console.log('Not authenticated, redirecting to login page');
+      window.location.href = '/login';
+    }
+    
+    // If on login page and already authenticated, redirect to dashboard
+    if ((window.location.pathname === '/login' || window.location.pathname === '/register') && isAuthenticated()) {
+      console.log('Already authenticated, redirecting to dashboard');
+      window.location.href = '/dashboard';
+    }
+  </script>
+</head>
+<body>
+  <div id="__next"></div>
+</body>
+</html>

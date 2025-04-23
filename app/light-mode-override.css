@@ -1,0 +1,68 @@
+/* Light mode override styles */
+:root {
+  color-scheme: light;
+}
+
+html {
+  background-color: white !important;
+  color: black !important;
+}
+
+body {
+  background-color: white !important;
+  color: black !important;
+}
+
+/* Override text colors */
+h1, h2, h3, h4, h5, h6 {
+  color: #1e293b !important; /* slate-800 */
+}
+
+p, span, div {
+  color: #334155 !important; /* slate-700 */
+}
+
+/* Override card backgrounds */
+.card,
+[class*="card-"],
+[class*="bg-card"] {
+  background-color: white !important;
+  color: #334155 !important;
+}
+
+/* Override button text */
+button {
+  color: inherit !important;
+}
+
+/* Override table text */
+table, th, td {
+  color: #334155 !important;
+}
+
+/* Badge text colors are handled by the badge component */
+/* We don't override badge text colors globally to ensure proper contrast */
+
+/* Override input text */
+input, textarea, select {
+  color: #1e293b !important;
+  background-color: white !important;
+}
+
+/* Override sidebar */
+aside,
+[class*="sidebar"] {
+  background-color: #f8fafc !important; /* slate-50 */
+  color: #334155 !important;
+}
+
+/* Override header */
+header {
+  background-color: white !important;
+  color: #334155 !important;
+}
+
+/* Override main content area */
+main {
+  background-color: #f8fafc !important; /* slate-50 */
+}

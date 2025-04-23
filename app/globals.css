@@ -1,0 +1,383 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 199 89% 94%;
+    --primary-foreground: 217 91% 60%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 199 89% 94%;
+
+    --radius: 0.5rem;
+
+    /* Custom colors for badges */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+    --info: 199 89% 94%;
+    --info-foreground: 0 0% 100%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+
+  /* Improved typography */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-medium tracking-tight text-slate-900;
+  }
+
+  p {
+    @apply text-slate-700;
+  }
+}
+
+/* Custom badge variants */
+.badge-success {
+  @apply bg-green-100 text-green-800;
+}
+
+.badge-warning {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.badge-info {
+  @apply bg-blue-100 text-blue-800;
+}
+
+/* Event status badges */
+.status-badge {
+  @apply bg-blue-100 text-blue-600 px-3 py-1 rounded-md text-sm inline-flex items-center;
+}
+
+.status-badge-success {
+  @apply bg-green-600 text-white px-3 py-1 rounded-md text-sm inline-flex items-center;
+}
+
+/* Finance transaction badges */
+.transaction-badge-income {
+  @apply bg-green-600 text-white px-3 py-1 rounded-md text-sm inline-flex items-center;
+}
+
+.transaction-badge-expense {
+  @apply bg-red-600 text-white px-3 py-1 rounded-md text-sm inline-flex items-center;
+}
+
+/* Member division badge */
+.member-division-badge {
+  @apply bg-gray-600 text-white px-3 py-1 rounded-md text-sm inline-flex items-center;
+}
+
+/* Feedback count badge */
+.feedback-count-badge {
+  @apply bg-gray-600 text-white px-3 py-1 rounded-md text-sm inline-flex items-center;
+}
+
+/* Animations */
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Improved table styles */
+.table-container {
+  @apply rounded-md border;
+}
+
+.table-container th {
+  @apply bg-slate-50 font-medium text-slate-500;
+}
+
+.table-container tr:hover td {
+  @apply bg-slate-50;
+}
+
+/* Card hover effects */
+.card-hover {
+  @apply transition-all duration-200;
+}
+
+.card-hover:hover {
+  @apply shadow-md;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-slate-100 rounded-full;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-400;
+}
+
+/* Improved focus styles */
+:focus-visible {
+  @apply outline-none ring-2 ring-offset-2 ring-blue-100;
+}
+
+/* Custom utility classes */
+.text-balance {
+  text-wrap: balance;
+}
+
+.text-pretty {
+  text-wrap: pretty;
+}
+
+/* Rich Text Editor Styles */
+
+/* Placeholder styles */
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #adb5bd;
+  pointer-events: none;
+  height: 0;
+}
+
+.ProseMirror {
+  min-height: 150px;
+  padding: 0.5rem;
+  outline: none;
+}
+
+.ProseMirror p {
+  margin-bottom: 0.75rem;
+}
+
+.ProseMirror h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.ProseMirror h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.ProseMirror h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.ProseMirror ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.ProseMirror ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.ProseMirror li {
+  margin-bottom: 0.25rem;
+}
+
+.ProseMirror a {
+  color: #93c5fd;
+  text-decoration: underline;
+}
+
+.ProseMirror blockquote {
+  border-left: 3px solid #e5e7eb;
+  padding-left: 1rem;
+  margin-left: 0;
+  margin-right: 0;
+  font-style: italic;
+}
+
+.ProseMirror p.has-text-align-center {
+  text-align: center;
+}
+
+.ProseMirror p.has-text-align-right {
+  text-align: right;
+}
+
+.ProseMirror p.has-text-align-left {
+  text-align: left;
+}
+
+.ProseMirror p.has-text-align-justify {
+  text-align: justify;
+}
+
+.ProseMirror strong {
+  font-weight: 700;
+}
+
+.ProseMirror em {
+  font-style: italic;
+}
+
+.ProseMirror u {
+  text-decoration: underline;
+}
+
+/* Dark mode adjustments */
+.dark .ProseMirror {
+  color: #e5e7eb;
+}
+
+.dark .ProseMirror a {
+  color: #93c5fd;
+}
+
+.dark .ProseMirror blockquote {
+  border-left-color: #4b5563;
+}
+
+/* News content styling */
+.prose div[dangerouslySetInnerHTML] {
+  line-height: 1.6;
+}
+
+.prose div[dangerouslySetInnerHTML] p {
+  margin-bottom: 1rem;
+}
+
+.prose div[dangerouslySetInnerHTML] strong {
+  font-weight: 700;
+}
+
+.prose div[dangerouslySetInnerHTML] em {
+  font-style: italic;
+}
+
+.prose div[dangerouslySetInnerHTML] ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.prose div[dangerouslySetInnerHTML] ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.prose div[dangerouslySetInnerHTML] li {
+  margin-bottom: 0.25rem;
+}
+
+.prose div[dangerouslySetInnerHTML] blockquote {
+  border-left: 3px solid #e5e7eb;
+  padding-left: 1rem;
+  margin: 1rem 0;
+  font-style: italic;
+}
+
+.prose div[dangerouslySetInnerHTML] h1,
+.prose div[dangerouslySetInnerHTML] h2,
+.prose div[dangerouslySetInnerHTML] h3,
+.prose div[dangerouslySetInnerHTML] h4,
+.prose div[dangerouslySetInnerHTML] h5,
+.prose div[dangerouslySetInnerHTML] h6 {
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.prose div[dangerouslySetInnerHTML] h1 {
+  font-size: 1.5rem;
+}
+
+.prose div[dangerouslySetInnerHTML] h2 {
+  font-size: 1.25rem;
+}
+
+.prose div[dangerouslySetInnerHTML] h3 {
+  font-size: 1.125rem;
+}
+
+.dark .prose div[dangerouslySetInnerHTML] blockquote {
+  border-left-color: #4b5563;
+}

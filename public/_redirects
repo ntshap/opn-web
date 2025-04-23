@@ -1,0 +1,8 @@
+# Netlify redirects file
+# Handle client-side routing for Next.js
+
+# DISABLED: Redirect dashboard paths to login if not authenticated
+# /dashboard/*    /login    302
+
+# Redirect all paths to index.html with 200 status code
+/*    /index.html   200

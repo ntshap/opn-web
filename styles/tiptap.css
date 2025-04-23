@@ -1,0 +1,119 @@
+/* Basic styles for TipTap editor */
+.ProseMirror {
+  min-height: 150px;
+  max-height: 300px;
+  padding: 1rem;
+  outline: none;
+  overflow-y: auto;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: #adb5bd;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Heading styles */
+.ProseMirror h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.ProseMirror h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.ProseMirror h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+/* List styles */
+.ProseMirror ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+}
+
+.ProseMirror ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+}
+
+/* Link styles */
+.ProseMirror a {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+
+/* Prose styles for content display */
+.prose {
+  max-width: 65ch;
+  color: #374151;
+}
+
+.prose a {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+
+.prose p {
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
+}
+
+.prose h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.prose h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.prose h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.prose ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
+}
+
+.prose ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
+}
+
+/* Dark mode */
+.dark .prose {
+  color: #e5e7eb;
+}
+
+.dark .prose a {
+  color: #60a5fa;
+}
+
+.dark .ProseMirror a {
+  color: #60a5fa;
+}

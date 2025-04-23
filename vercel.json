@@ -1,0 +1,11 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run build:simple",
+  "devCommand": "next dev",
+  "installCommand": "npm install --legacy-peer-deps",
+  "outputDirectory": ".next",
+  "env": {
+    "NEXT_PUBLIC_API_URL": "https://backend-project-pemuda.onrender.com/api/v1",
+    "NEXT_PUBLIC_USE_FALLBACK_DATA": "false"
+  }
+}
