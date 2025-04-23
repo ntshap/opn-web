@@ -50,13 +50,18 @@ export default function DirectDashboardLayout({ children }) {
           localStorage.setItem('is_logged_in', 'true');
         }
 
-        // Consider user authenticated if they have a token, even if is_logged_in flag is not set
-        if (authToken || directToken) {
+        // User must have both a token and is_logged_in flag to be considered authenticated
+        if ((authToken || directToken) && isLoggedIn) {
           log('User is authenticated, showing dashboard');
           setIsAuthenticated(true);
           setIsLoading(false);
           return;
         }
+
+        // If we get here, the user is not authenticated
+        log('User is not authenticated, redirecting to login');
+        window.location.href = '/login';
+        return;
 
         // Check if backend is available
         log('Checking if backend is available...');

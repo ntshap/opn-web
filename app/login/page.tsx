@@ -49,7 +49,7 @@ export default function LoginPage() {
       const authToken = localStorage.getItem('auth_token');
       const isLoggedIn = localStorage.getItem('is_logged_in') === 'true';
 
-      console.log('Auth check:', {
+      console.log('Auth check on login page:', {
         token: token ? 'present' : 'missing',
         authToken: authToken ? 'present' : 'missing',
         isLoggedIn: isLoggedIn ? 'true' : 'false'
@@ -61,10 +61,13 @@ export default function LoginPage() {
         localStorage.setItem('is_logged_in', 'true');
       }
 
-      if ((token || authToken)) {
+      // User must have both a token and is_logged_in flag to be considered authenticated
+      if ((token || authToken) && isLoggedIn) {
         console.log('Already authenticated, redirecting to dashboard');
         // Use window.location.href for a full page refresh to ensure tokens are properly loaded
         window.location.href = '/dashboard';
+      } else {
+        console.log('Not authenticated, staying on login page');
       }
     }, 500);
 
@@ -119,6 +122,10 @@ export default function LoginPage() {
 
       // Login successful, tokens are already stored by authApi.login
       console.log("Login successful, token received")
+
+      // Explicitly set the is_logged_in flag to true
+      localStorage.setItem('is_logged_in', 'true');
+      console.log("is_logged_in flag set to true")
 
       // Get redirect path or default to dashboard
       const redirectPath = localStorage.getItem(API_CONFIG.AUTH.REDIRECT_KEY) || '/dashboard'
