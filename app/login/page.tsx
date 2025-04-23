@@ -44,14 +44,27 @@ export default function LoginPage() {
 
     // Add a small delay to prevent immediate checks
     const checkAuthTimer = setTimeout(() => {
-      // Check if we already have a token
+      // Check if we already have a token and is_logged_in flag
       const token = localStorage.getItem('token');
       const authToken = localStorage.getItem('auth_token');
+      const isLoggedIn = localStorage.getItem('is_logged_in') === 'true';
 
-      if (token || authToken) {
+      console.log('Auth check:', {
+        token: token ? 'present' : 'missing',
+        authToken: authToken ? 'present' : 'missing',
+        isLoggedIn: isLoggedIn ? 'true' : 'false'
+      });
+
+      // If we have a token but no is_logged_in flag, set it now
+      if ((token || authToken) && !isLoggedIn) {
+        console.log('Token found but no is_logged_in flag, setting it now');
+        localStorage.setItem('is_logged_in', 'true');
+      }
+
+      if ((token || authToken)) {
         console.log('Already authenticated, redirecting to dashboard');
-        // Use router.push instead of window.location for better Next.js integration
-        router.push('/dashboard');
+        // Use window.location.href for a full page refresh to ensure tokens are properly loaded
+        window.location.href = '/dashboard';
       }
     }, 500);
 

@@ -161,16 +161,34 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
-  // For dashboard and other protected routes, check authentication
-  if (request.nextUrl.pathname.startsWith('/dashboard')) {
+  // Check if this is the root path or any protected route
+  const isRootPath = request.nextUrl.pathname === '/' || request.nextUrl.pathname === ''
+  const isProtectedRoute = request.nextUrl.pathname.startsWith('/dashboard') ||
+                          isRootPath ||
+                          request.nextUrl.pathname.startsWith('/events') ||
+                          request.nextUrl.pathname.startsWith('/members') ||
+                          request.nextUrl.pathname.startsWith('/profile')
+
+  // For protected routes, check authentication
+  if (isProtectedRoute) {
     // Get token from cookies
     const token = request.cookies.get('auth_token')?.value
+    const isLoggedIn = request.cookies.get('is_logged_in')?.value === 'true'
 
-    // Check if we have a token
-    if (!token) {
-      console.log('No auth token found - redirecting to login')
+    // Check if we have a token and the user is logged in
+    if (!token || !isLoggedIn) {
+      console.log('Authentication check failed - redirecting to login')
+      console.log('Token:', token ? 'present' : 'missing')
+      console.log('Is logged in:', isLoggedIn ? 'true' : 'false')
 
-      // Store the current URL to redirect back after login
+      // If it's the root path, just redirect to login without a redirect parameter
+      if (isRootPath) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/login'
+        return NextResponse.redirect(url)
+      }
+
+      // For other protected routes, store the current URL to redirect back after login
       const url = request.nextUrl.clone()
       url.pathname = '/login'
       url.searchParams.set('redirect', request.nextUrl.pathname)
@@ -180,6 +198,7 @@ export async function middleware(request: NextRequest) {
 
     // We'll skip the backend check in the middleware to avoid Edge Runtime issues
     // The client-side code will handle checking if the backend is available
+    console.log('Authentication check passed - proceeding to protected route')
   }
 
   // Get response headers
