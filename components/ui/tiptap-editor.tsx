@@ -69,12 +69,18 @@ export function TipTapEditor({ content, onChange, placeholder, className = '' }:
   }
 
   return (
-    <div className={`border rounded-md ${className}`}>
+    <div
+      className={`border rounded-md ${className}`}
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+    >
       <div className="flex flex-wrap items-center gap-1 p-2 border-b bg-gray-50">
         <div className="flex items-center">
           <select
             className="text-sm border-0 bg-transparent focus:ring-0 py-1 px-2 rounded"
+            onClick={(e) => e.stopPropagation()}
             onChange={(e) => {
+              e.stopPropagation();
               const value = e.target.value
               if (value === 'p') {
                 editor?.chain().focus().setParagraph().run()
@@ -96,29 +102,43 @@ export function TipTapEditor({ content, onChange, placeholder, className = '' }:
         <div className="h-4 w-px bg-gray-300 mx-1"></div>
         <button
           className={`p-1 hover:bg-gray-200 rounded ${editor?.isActive('bold') ? 'bg-gray-200' : ''}`}
-          onClick={() => editor?.chain().focus().toggleBold().run()}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            editor?.chain().focus().toggleBold().run();
+          }}
         >
           <Bold className="h-4 w-4" />
         </button>
         <button
           className={`p-1 hover:bg-gray-200 rounded ${editor?.isActive('italic') ? 'bg-gray-200' : ''}`}
-          onClick={() => editor?.chain().focus().toggleItalic().run()}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            editor?.chain().focus().toggleItalic().run();
+          }}
         >
           <Italic className="h-4 w-4" />
         </button>
         <button
           className={`p-1 hover:bg-gray-200 rounded ${editor?.isActive('underline') ? 'bg-gray-200' : ''}`}
-          onClick={() => editor?.chain().focus().toggleUnderline().run()}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            editor?.chain().focus().toggleUnderline().run();
+          }}
         >
           <UnderlineIcon className="h-4 w-4" />
         </button>
         <button
           className={`p-1 hover:bg-gray-200 rounded ${editor?.isActive('link') ? 'bg-gray-200' : ''}`}
-          onClick={() => {
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
             if (editor?.isActive('link')) {
-              editor.chain().focus().unsetLink().run()
+              editor.chain().focus().unsetLink().run();
             } else {
-              setShowLinkInput(true)
+              setShowLinkInput(true);
             }
           }}
         >
@@ -127,35 +147,52 @@ export function TipTapEditor({ content, onChange, placeholder, className = '' }:
         <div className="h-4 w-px bg-gray-300 mx-1"></div>
         <button
           className={`p-1 hover:bg-gray-200 rounded ${editor?.isActive('bulletList') ? 'bg-gray-200' : ''}`}
-          onClick={() => editor?.chain().focus().toggleBulletList().run()}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            editor?.chain().focus().toggleBulletList().run();
+          }}
         >
           <List className="h-4 w-4" />
         </button>
         <button
           className={`p-1 hover:bg-gray-200 rounded ${editor?.isActive('orderedList') ? 'bg-gray-200' : ''}`}
-          onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            editor?.chain().focus().toggleOrderedList().run();
+          }}
         >
           <ListOrdered className="h-4 w-4" />
         </button>
 
         {showLinkInput && (
-          <div className="flex items-center ml-2">
+          <div className="flex items-center ml-2" onClick={(e) => e.stopPropagation()}>
             <input
               type="text"
               placeholder="https://example.com"
               className="text-sm border rounded px-2 py-1 w-40"
               value={linkUrl}
-              onChange={(e) => setLinkUrl(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => {
+                e.stopPropagation();
+                setLinkUrl(e.target.value);
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                  addLink()
+                  e.stopPropagation();
+                  addLink();
                 }
               }}
             />
             <Button
               size="sm"
               className="ml-1"
-              onClick={addLink}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                addLink();
+              }}
             >
               Add
             </Button>
@@ -163,7 +200,11 @@ export function TipTapEditor({ content, onChange, placeholder, className = '' }:
               size="sm"
               variant="ghost"
               className="ml-1"
-              onClick={() => setShowLinkInput(false)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowLinkInput(false);
+              }}
             >
               Cancel
             </Button>
@@ -171,38 +212,54 @@ export function TipTapEditor({ content, onChange, placeholder, className = '' }:
         )}
       </div>
 
-      <EditorContent editor={editor} className="min-h-[200px]" />
+      <div onClick={(e) => e.stopPropagation()}>
+        <EditorContent editor={editor} className="min-h-[200px]" />
+      </div>
 
       {editor && (
         <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }}>
           <div className="flex bg-white shadow rounded border">
             <button
               className={`p-1 hover:bg-gray-100 ${editor.isActive('bold') ? 'bg-gray-100' : ''}`}
-              onClick={() => editor.chain().focus().toggleBold().run()}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                editor.chain().focus().toggleBold().run();
+              }}
             >
               <Bold className="h-4 w-4" />
             </button>
             <button
               className={`p-1 hover:bg-gray-100 ${editor.isActive('italic') ? 'bg-gray-100' : ''}`}
-              onClick={() => editor.chain().focus().toggleItalic().run()}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                editor.chain().focus().toggleItalic().run();
+              }}
             >
               <Italic className="h-4 w-4" />
             </button>
             <button
               className={`p-1 hover:bg-gray-100 ${editor.isActive('underline') ? 'bg-gray-100' : ''}`}
-              onClick={() => editor.chain().focus().toggleUnderline().run()}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                editor.chain().focus().toggleUnderline().run();
+              }}
             >
               <UnderlineIcon className="h-4 w-4" />
             </button>
             <button
               className={`p-1 hover:bg-gray-100 ${editor.isActive('link') ? 'bg-gray-100' : ''}`}
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 if (editor.isActive('link')) {
-                  editor.chain().focus().unsetLink().run()
+                  editor.chain().focus().unsetLink().run();
                 } else {
-                  const url = window.prompt('URL')
+                  const url = window.prompt('URL');
                   if (url) {
-                    editor.chain().focus().setLink({ href: url }).run()
+                    editor.chain().focus().setLink({ href: url }).run();
                   }
                 }
               }}

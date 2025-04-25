@@ -212,7 +212,6 @@ export function GallerySimple({ eventId }: GallerySimpleProps) {
                         filePath={photo.photo_url}
                         alt={`Foto acara ${index + 1}`}
                         className="w-full h-full object-cover"
-                        fallbackSrc="/placeholder-image.png"
                         width={300}
                         height={300}
                       />

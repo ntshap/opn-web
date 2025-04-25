@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import axios from "axios"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -41,7 +42,50 @@ export function AttendanceForm({ eventId, attendees: initialAttendees = [], onRe
   const [bulkEditData, setBulkEditData] = useState<Record<number, { status: string, notes: string }>>({})
 
   // Ensure attendees is always an array
-  const attendees = Array.isArray(initialAttendees) ? initialAttendees : []
+  const [attendees, setAttendees] = useState<Attendee[]>([])
+
+  // Initialize attendees from props and localStorage
+  useEffect(() => {
+    // Start with the initial attendees from props
+    let attendeesList = Array.isArray(initialAttendees) ? initialAttendees : [];
+
+    // Try to load saved attendance data from localStorage
+    try {
+      const savedAttendance = localStorage.getItem(`event_${eventId}_attendance`);
+      if (savedAttendance) {
+        const parsedAttendance = JSON.parse(savedAttendance);
+        console.log(`[AttendanceForm] Loaded saved attendance data from localStorage:`, parsedAttendance);
+
+        // If we have saved attendance data, update the attendees list
+        if (parsedAttendance && Array.isArray(parsedAttendance) && parsedAttendance.length > 0) {
+          // Create a map of member_id to saved attendance data
+          const savedAttendanceMap = new Map();
+          parsedAttendance.forEach(item => {
+            if (item && item.member_id) {
+              savedAttendanceMap.set(item.member_id, item);
+            }
+          });
+
+          // Update attendees with saved data
+          attendeesList = attendeesList.map(attendee => {
+            const savedData = savedAttendanceMap.get(attendee.member_id);
+            if (savedData) {
+              return {
+                ...attendee,
+                status: savedData.status || attendee.status,
+                notes: savedData.notes || attendee.notes
+              };
+            }
+            return attendee;
+          });
+        }
+      }
+    } catch (error) {
+      console.error("[AttendanceForm] Error loading saved attendance data:", error);
+    }
+
+    setAttendees(attendeesList);
+  }, [initialAttendees, eventId])
 
   // Reset form when selected attendee changes
   useEffect(() => {
@@ -83,26 +127,61 @@ export function AttendanceForm({ eventId, attendees: initialAttendees = [], onRe
 
     try {
       // Format the data for the API and ensure status is one of the allowed values
-      // Backend expects specific status values
       const status = attendanceForm.status === "Hadir" ? "Hadir" :
                     attendanceForm.status === "Izin" ? "Izin" : "Alfa";
 
-      const attendanceData = [{
+      const attendanceData = {
         member_id: attendee.member_id,
-        status: status, // Send the validated status string
-        notes: attendanceForm.notes
-      }]
+        status: status,
+        notes: attendanceForm.notes || ""
+      };
 
-      console.log(`Saving attendance for member ${attendee.member_id} with status: ${status}`)
+      console.log(`[AttendanceForm] Saving attendance for member ${attendee.member_id} with status: ${status}`);
 
-      // Use createOrUpdateAttendance instead of updateAttendance
-      await createOrUpdateAttendance.mutateAsync(attendanceData)
+      // Update the attendees list with the new data
+      const updatedAttendees = attendees.map(a =>
+        a.id === selectedAttendee
+          ? { ...a, status: status, notes: attendanceForm.notes || "" }
+          : a
+      );
+      setAttendees(updatedAttendees);
 
-      // Close the form and refresh data
-      setSelectedAttendee(null)
-      onRefresh()
+      // Save to localStorage
+      try {
+        // Get existing data from localStorage
+        const savedAttendance = localStorage.getItem(`event_${eventId}_attendance`);
+        let savedData = [];
+
+        if (savedAttendance) {
+          savedData = JSON.parse(savedAttendance);
+        }
+
+        // Update or add the new attendance data
+        const existingIndex = savedData.findIndex((item: any) => item.member_id === attendee.member_id);
+
+        if (existingIndex >= 0) {
+          savedData[existingIndex] = attendanceData;
+        } else {
+          savedData.push(attendanceData);
+        }
+
+        // Save back to localStorage
+        localStorage.setItem(`event_${eventId}_attendance`, JSON.stringify(savedData));
+        console.log(`[AttendanceForm] Saved attendance data to localStorage`);
+      } catch (storageError) {
+        console.error("[AttendanceForm] Error saving to localStorage:", storageError);
+      }
+
+      // Close the form
+      setSelectedAttendee(null);
+
+      // Call the onRefresh callback to refresh the parent component
+      if (onRefresh && typeof onRefresh === 'function') {
+        console.log('[AttendanceForm] Calling onRefresh to update parent component');
+        onRefresh();
+      }
     } catch (error) {
-      console.error("Error updating attendance:", error)
+      console.error("[AttendanceForm] Error updating attendance:", error);
     }
   }
 
@@ -150,9 +229,52 @@ export function AttendanceForm({ eventId, attendees: initialAttendees = [], onRe
                     }).filter(Boolean);
 
                     if (updateData.length > 0) {
-                      await createOrUpdateAttendance.mutateAsync(updateData as any);
-                      alert('Data kehadiran berhasil diperbarui');
-                      onRefresh();
+                      console.log('[AttendanceForm] Saving bulk attendance data:', updateData);
+
+                      // Update the attendees list with the new data
+                      const updatedAttendees = [...attendees];
+                      updateData.forEach((data: any) => {
+                        const index = updatedAttendees.findIndex(a => a.member_id === data.member_id);
+                        if (index >= 0) {
+                          updatedAttendees[index] = {
+                            ...updatedAttendees[index],
+                            status: data.status,
+                            notes: data.notes || ""
+                          };
+                        }
+                      });
+                      setAttendees(updatedAttendees);
+
+                      // Save to localStorage
+                      try {
+                        // Get existing data from localStorage
+                        const savedAttendance = localStorage.getItem(`event_${eventId}_attendance`);
+                        let savedData = savedAttendance ? JSON.parse(savedAttendance) : [];
+
+                        // Update or add each attendance record
+                        updateData.forEach((data: any) => {
+                          const existingIndex = savedData.findIndex((item: any) => item.member_id === data.member_id);
+
+                          if (existingIndex >= 0) {
+                            savedData[existingIndex] = data;
+                          } else {
+                            savedData.push(data);
+                          }
+                        });
+
+                        // Save back to localStorage
+                        localStorage.setItem(`event_${eventId}_attendance`, JSON.stringify(savedData));
+                        console.log(`[AttendanceForm] Saved bulk attendance data to localStorage`);
+                      } catch (storageError) {
+                        console.error("[AttendanceForm] Error saving bulk data to localStorage:", storageError);
+                      }
+
+                      // Call the onRefresh callback to refresh the parent component
+                      if (onRefresh && typeof onRefresh === 'function') {
+                        console.log('[AttendanceForm] Calling onRefresh after bulk update');
+                        onRefresh();
+                      }
+
                       setIsEditingAll(false);
                     }
                   } catch (error) {

@@ -27,15 +27,27 @@ export function DirectBackendImage({
 }: DirectBackendImageProps) {
   const [error, setError] = useState(false);
 
-  // Don't render anything if the URL is invalid
-  if (!url) {
+  // Don't render anything if the URL is invalid or is the literal "string"
+  if (!url || url.includes('/uploads/string') || url === 'string') {
     console.warn(`[DirectBackendImage] Invalid URL: ${url}`);
     return (
       <div
         className={`flex items-center justify-center text-muted-foreground text-xs bg-secondary ${className}`}
         style={{ width, height }}
       >
-        <span>{alt}</span>
+        {fallbackSrc ? (
+          <img
+            src={fallbackSrc}
+            alt={`Fallback for ${alt}`}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+          />
+        ) : (
+          <span>{alt}</span>
+        )}
       </div>
     );
   }
@@ -85,8 +97,13 @@ export function DirectBackendImage({
     );
   }
 
-  // Use the image directly with the exact URL provided
-  console.log(`[DirectBackendImage] Using exact URL: ${url}`);
+  // Use the image directly with the exact URL provided, but fix double slashes
+  // Fix double slashes in URL (except after protocol)
+  const fixedUrl = url.replace(/([^:])\/\//g, '$1/');
+  console.log(`[DirectBackendImage] Using fixed URL: ${fixedUrl} (original: ${url})`);
+
+  // Update the url to use the fixed version
+  url = fixedUrl;
 
   // State for the blob URL
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
@@ -96,64 +113,105 @@ export function DirectBackendImage({
   useEffect(() => {
     let isMounted = true;
 
+    // Check if the URL is a placeholder or local image
+    if (url.includes('placeholder') || url.startsWith('/') && !url.startsWith('/api/')) {
+      console.log(`[DirectBackendImage] Using local image: ${url}`);
+      // For local images, just create a blob URL directly
+      if (isMounted) {
+        setBlobUrl(url);
+        setLoading(false);
+      }
+      return;
+    }
+
     const fetchImage = async () => {
       try {
         setLoading(true);
 
-        // Try two different approaches to fetch the image
+        // Get the auth token first - we'll need it for all approaches
+        const token = getAuthToken();
+        if (!token) {
+          console.error('[DirectBackendImage] No authentication token available');
+          throw new Error('Authentication required. Please log in again.');
+        }
+
+        // Make sure token has Bearer prefix
+        const authHeader = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+        console.log(`[DirectBackendImage] Using auth token: ${authHeader.substring(0, 15)}...`);
+
+        // Try different approaches to fetch the image
         let response;
         let errorMessage = '';
 
-        // First try: Use apiClient directly
+        // First try: Use fetch with authentication token directly
         try {
-          console.log(`[DirectBackendImage] Trying to fetch with apiClient: ${url}`);
-          const apiResponse = await apiClient.get(url, {
-            responseType: 'blob',
-            timeout: 30000,
-          });
+          console.log(`[DirectBackendImage] Trying to fetch with fetch API: ${url}`);
 
-          // Create a Response object from the apiClient response
-          response = new Response(apiResponse.data, {
-            status: 200,
-            statusText: 'OK',
+          // Use fetch with authentication
+          response = await fetch(url, {
             headers: {
-              'Content-Type': apiResponse.headers['content-type'] || 'image/jpeg',
+              'Authorization': authHeader,
+              'Accept': 'image/*',
             },
           });
 
-          console.log(`[DirectBackendImage] Successfully fetched with apiClient`);
-        } catch (apiError) {
-          console.error(`[DirectBackendImage] Error fetching with apiClient:`, apiError);
-          errorMessage += `apiClient error: ${apiError.message}\n`;
+          console.log(`[DirectBackendImage] Fetch response status: ${response.status} ${response.statusText}`);
 
-          // Second try: Use fetch with authentication token
+          // If the response is not ok, throw an error to try the next approach
+          if (!response.ok) {
+            throw new Error(`Fetch failed with status ${response.status}`);
+          }
+
+          console.log(`[DirectBackendImage] Successfully fetched with fetch API`);
+        } catch (fetchError) {
+          console.error(`[DirectBackendImage] Error fetching with fetch API:`, fetchError);
+          errorMessage += `fetch error: ${fetchError.message}\n`;
+
+          // Second try: Use apiClient
           try {
-            // Get the auth token
-            const token = getAuthToken();
-            console.log(`[DirectBackendImage] Trying to fetch with fetch API: ${url}`);
-
-            // Use fetch with authentication
-            response = await fetch(url, {
+            console.log(`[DirectBackendImage] Trying to fetch with apiClient: ${url}`);
+            const apiResponse = await apiClient.get(url, {
+              responseType: 'blob',
+              timeout: 30000,
               headers: {
-                'Authorization': token ? `Bearer ${token}` : '',
+                'Authorization': authHeader,
+                'Accept': 'image/*',
+              }
+            });
+
+            // Create a Response object from the apiClient response
+            response = new Response(apiResponse.data, {
+              status: 200,
+              statusText: 'OK',
+              headers: {
+                'Content-Type': apiResponse.headers['content-type'] || 'image/jpeg',
               },
             });
 
-            console.log(`[DirectBackendImage] Successfully fetched with fetch API`);
-          } catch (fetchError) {
-            console.error(`[DirectBackendImage] Error fetching with fetch API:`, fetchError);
-            errorMessage += `fetch error: ${fetchError.message}\n`;
+            console.log(`[DirectBackendImage] Successfully fetched with apiClient`);
+          } catch (apiError) {
+            console.error(`[DirectBackendImage] Error fetching with apiClient:`, apiError);
+            errorMessage += `apiClient error: ${apiError.message}\n`;
 
-            // Third try: Use server-side proxy
+            // Third try: Use raw-image API endpoint
             try {
-              console.log(`[DirectBackendImage] Trying to fetch with server-side proxy`);
-              const proxyUrl = `/api/v1/proxy-image?url=${encodeURIComponent(url)}`;
+              console.log(`[DirectBackendImage] Trying to fetch with raw-image API endpoint`);
+              const proxyUrl = `/api/v1/raw-image?url=${encodeURIComponent(url)}`;
               console.log(`[DirectBackendImage] Proxy URL: ${proxyUrl}`);
 
-              response = await fetch(proxyUrl);
-              console.log(`[DirectBackendImage] Successfully fetched with server-side proxy`);
+              response = await fetch(proxyUrl, {
+                headers: {
+                  'Authorization': authHeader,
+                }
+              });
+
+              if (!response.ok) {
+                throw new Error(`Raw-image API failed with status ${response.status}`);
+              }
+
+              console.log(`[DirectBackendImage] Successfully fetched with raw-image API endpoint`);
             } catch (proxyError) {
-              console.error(`[DirectBackendImage] Error fetching with server-side proxy:`, proxyError);
+              console.error(`[DirectBackendImage] Error fetching with raw-image API endpoint:`, proxyError);
               errorMessage += `proxy error: ${proxyError.message}`;
               throw new Error(`Failed to fetch image: ${errorMessage}`);
             }
@@ -222,20 +280,25 @@ export function DirectBackendImage({
         </div>
       )}
 
-      {/* Add a fallback image that will show if the main image fails to load */}
-      {fallbackSrc && error && (
-        <img
-          src={fallbackSrc}
-          alt={`Fallback for ${alt}`}
+      {/* Show error message if there's an error */}
+      {error && (
+        <div
           style={{
             width: '100%',
             height: '100%',
-            objectFit: 'cover',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#f0f0f0',
+            color: '#666',
+            fontSize: '12px',
             position: 'absolute',
             top: 0,
             left: 0,
           }}
-        />
+        >
+          {alt || 'Image unavailable'}
+        </div>
       )}
 
       {/* Use the blob URL for the image */}
@@ -253,7 +316,10 @@ export function DirectBackendImage({
           }}
           onError={(e) => {
             console.error(`[DirectBackendImage] Error displaying image: ${url}`);
+            // Don't call setError here as it can cause React rendering issues
+            // Instead, show a simple error message
             setError(true);
+            // Do NOT set fallback src here as it can cause infinite loops
           }}
         />
       )}

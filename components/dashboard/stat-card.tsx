@@ -70,12 +70,6 @@ export function StatCard({ title, value, icon: Icon, trend, percentage, descript
           <div className={`rounded-full ${colors.bg} p-3`}>
             <Icon className={`h-5 w-5 ${colors.text}`} />
           </div>
-          <div
-            className={`flex items-center gap-1 text-sm font-medium ${trend === "up" ? colors.trendUp : colors.trendDown}`}
-          >
-            {trend === "up" ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
-            <span>{percentage}%</span>
-          </div>
         </div>
         <div className="mt-4">
           {isLoading ? (

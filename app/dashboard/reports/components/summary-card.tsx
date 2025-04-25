@@ -21,11 +21,6 @@ export function SummaryCard({ title, value, description, trend }: SummaryCardPro
       <CardContent>
         <div className="text-2xl font-medium">{value}</div>
         {description && <p className="text-xs text-muted-foreground">{description}</p>}
-        {trend && (
-          <div className={`text-xs mt-1 ${trend.isPositive ? "text-green-600" : "text-red-600"}`}>
-            {trend.isPositive ? "↑" : "↓"} {Math.abs(trend.value)}%
-          </div>
-        )}
       </CardContent>
     </Card>
   )

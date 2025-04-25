@@ -22,22 +22,37 @@ export function useNews(params?: {
   search?: string
 }) {
   const { toast } = useToast()
-  
+
+  // Log the params for debugging
+  console.log('useNews hook called with params:', params)
+
   return useQuery<NewsItem[], Error>({
     queryKey: newsKeys.list(params || {}),
     queryFn: async ({ signal }) => {
+      console.log('useNews queryFn executing with params:', params)
+
       try {
-        const data = await newsApi.getNews(params, signal)
-        
+        // Check if the signal is aborted before making the request
+        if (signal?.aborted) {
+          console.log('Request was aborted before execution')
+          return []
+        }
+
+        // Add a timestamp to prevent caching issues
+        const paramsWithTimestamp = {
+          ...params,
+          _t: Date.now()
+        }
+
+        console.log('Calling newsApi.getNews with params:', paramsWithTimestamp)
+        const data = await newsApi.getNews(paramsWithTimestamp, signal)
+        console.log('newsApi.getNews returned data:', data)
+
         // Additional validation at the hook level
         if (!Array.isArray(data)) {
           console.error('Invalid data format received:', data)
-          toast({
-            title: "Error",
-            description: "Invalid data format received from server",
-            variant: "destructive",
-          })
-          throw new Error('Invalid response format from server')
+          // Return empty array instead of throwing to prevent UI errors
+          return []
         }
 
         // Validate that each item has the required fields
@@ -53,47 +68,63 @@ export function useNews(params?: {
           )
         }
 
-        if (!data.every(isValidNewsItem)) {
-          console.error('Invalid news items in response:', data)
-          toast({
-            title: "Error",
-            description: "Some news items have invalid format",
-            variant: "destructive",
-          })
-          throw new Error('Invalid news items in response')
+        // Filter out invalid items instead of throwing an error
+        const validItems = data.filter(isValidNewsItem)
+        console.log(`Filtered ${data.length} news items to ${validItems.length} valid items`)
+
+        if (validItems.length < data.length) {
+          console.warn('Some news items had invalid format and were filtered out')
         }
 
-        return data
+        return validItems
       } catch (error) {
+        // Handle axios cancellation errors silently
+        if (axios.isCancel(error)) {
+          console.log('Request was cancelled')
+          return []
+        }
+
         // Handle specific error types
         if (error instanceof Error) {
           console.error('Error in useNews:', error.message)
-          toast({
-            title: "Error",
-            description: error.message,
-            variant: "destructive",
-          })
-          throw error
+
+          // Don't show toast for every error to avoid spamming the user
+          // Only show for specific errors that need user attention
+          if (error.message !== 'An unexpected error occurred' &&
+              !error.message.includes('aborted') &&
+              !error.message.includes('cancel')) {
+            toast({
+              title: "Perhatian",
+              description: "Gagal memuat data berita. Silakan coba lagi nanti.",
+              variant: "destructive",
+            })
+          }
+
+          // Return empty array instead of throwing to prevent UI errors
+          return []
         }
 
         // Handle unknown errors
         console.error('Unknown error in useNews:', error)
-        toast({
-          title: "Error",
-          description: "An unexpected error occurred",
-          variant: "destructive",
-        })
-        throw new Error('An unexpected error occurred')
+        // Return empty array instead of throwing to prevent UI errors
+        return []
       }
     },
     retry: (failureCount, error) => {
-      if (error instanceof Error && error.message === 'Invalid response format from server') {
-        return false // Don't retry for invalid format errors
+      // Don't retry for cancelled requests or aborted signals
+      if (axios.isCancel(error) ||
+          (error instanceof Error && (
+            error.message.includes('aborted') ||
+            error.message.includes('cancel')
+          ))) {
+        return false
       }
       return failureCount < 2
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000 // 10 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    // Add refetchOnWindowFocus: false to prevent unnecessary refetches
+    refetchOnWindowFocus: false
   })
 }
 
@@ -164,14 +195,24 @@ export function useNewsMutations() {
   const deleteNews = useMutation({
     mutationFn: (id: number | string) => newsApi.deleteNewsItem(id),
     onSuccess: (_, id) => {
-      // Invalidate all news queries
-      queryClient.invalidateQueries({ queryKey: newsKeys.lists() })
-
-      // Show success toast
+      // Show success toast first
       toast({
         title: "Berhasil",
         description: "Berita berhasil dihapus",
       })
+
+      // Use a small delay before invalidating queries to avoid race conditions
+      setTimeout(() => {
+        // Invalidate specific news item first
+        queryClient.invalidateQueries({ queryKey: newsKeys.detail(id) })
+
+        // Then invalidate the list queries
+        queryClient.invalidateQueries({
+          queryKey: newsKeys.lists(),
+          // Don't throw on error during refetch
+          throwOnError: false
+        })
+      }, 300)
     },
     onError: (error) => {
       // Show error toast

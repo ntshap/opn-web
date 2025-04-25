@@ -1,6 +1,7 @@
 import { apiClient } from './api-client';
 import axios from 'axios';
 import { API_CONFIG } from './config';
+import { getAuthToken } from './auth-utils';
 
 export const fileApi = {
   /**
@@ -26,8 +27,8 @@ export const fileApi = {
       // Use the exact backend URL without any manipulation
       const backendBaseUrl = 'https://backend-project-pemuda.onrender.com';
 
-      // Construct the exact URL
-      const fullUrl = `${backendBaseUrl}/${cleanRelativePath.startsWith('/') ? cleanRelativePath.substring(1) : cleanRelativePath}`;
+      // Construct the exact URL with double slash as required by the backend
+      const fullUrl = `${backendBaseUrl}//${cleanRelativePath.startsWith('/') ? cleanRelativePath.substring(1) : cleanRelativePath}`;
 
       // Check if the URL contains localhost
       if (fullUrl.includes('localhost')) {
@@ -37,14 +38,26 @@ export const fileApi = {
 
       console.log(`[API Files] Constructed full URL for direct fetch: ${fullUrl}`); // Log URL being fetched
 
-      // 3. Fetch directly using apiClient (handles auth)
+      // Get the auth token
+      const token = getAuthToken();
+      if (!token) {
+        console.error('[API Files] No authentication token available');
+        throw new Error('Authentication required. Please log in again.');
+      }
+
+      console.log(`[API Files] Using auth token: ${token.substring(0, 15)}...`);
+
+      // 3. Fetch directly using apiClient with explicit auth header
       const response = await apiClient.get(
         fullUrl, // Use the absolute URL that was constructed
         {
           responseType: 'blob',
           signal,
           timeout: 20000,
-          // Auth header is added automatically by apiClient interceptor
+          headers: {
+            'Authorization': token,
+            'Accept': 'image/*',
+          }
         }
       );
 
@@ -70,6 +83,39 @@ export const fileApi = {
           headers: error.config?.headers,
           baseURL: error.config?.baseURL
         });
+
+        // Try using the raw-image API endpoint as a fallback
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          try {
+            console.log(`[API Files] Trying fallback approach with raw-image API endpoint`);
+            const token = getAuthToken();
+            if (!token) {
+              console.error('[API Files] No authentication token available for fallback approach');
+              return new Blob();
+            }
+
+            // Use the raw-image API endpoint
+            const proxyUrl = `/api/v1/raw-image?url=${encodeURIComponent(fullUrl)}`;
+            console.log(`[API Files] Using proxy URL: ${proxyUrl}`);
+
+            const proxyResponse = await fetch(proxyUrl, {
+              headers: {
+                'Authorization': token,
+              },
+            });
+
+            if (!proxyResponse.ok) {
+              console.error(`[API Files] Proxy approach failed: ${proxyResponse.status} ${proxyResponse.statusText}`);
+              return new Blob();
+            }
+
+            console.log(`[API Files] Successfully fetched file using proxy: ${proxyUrl}`);
+            return await proxyResponse.blob();
+          } catch (proxyError) {
+            console.error(`[API Files] Error using proxy approach:`, proxyError);
+            return new Blob();
+          }
+        }
       }
       return new Blob(); // Return empty blob on error
     }

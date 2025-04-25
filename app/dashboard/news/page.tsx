@@ -14,6 +14,7 @@ import { Loader2, Plus } from "lucide-react"
 import { useDebounce } from "@/hooks/use-debounce"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { NewsForm } from "./components/news-form"
+import { useToast } from "@/components/ui/use-toast"
 
 export default function NewsPage() {
   const [activeTab, setActiveTab] = useState("all")
@@ -22,6 +23,7 @@ export default function NewsPage() {
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const searchParams = useSearchParams()
+  const { toast } = useToast()
 
   // Check for action parameter in URL
   useEffect(() => {
@@ -34,19 +36,32 @@ export default function NewsPage() {
   // Debounce search query to avoid too many API calls
   const debouncedSearchQuery = useDebounce(searchQuery, 500)
 
-  // Fetch news with filters
-  const { data: newsItems = [], isLoading, error, refetch } = useNews({
+  // Create filter params
+  const filterParams = {
     skip: skip,
     limit: 9,
     is_published: activeTab === "published" ? true : activeTab === "draft" ? false : undefined,
     search: debouncedSearchQuery || undefined
+  }
+
+  console.log('News page using filter params:', filterParams)
+
+  // Fetch news with filters
+  const { data: newsItems = [], isLoading, error, refetch } = useNews(filterParams)
+
+  // Log the results for debugging
+  console.log('useNews returned:', {
+    itemsCount: newsItems?.length || 0,
+    isLoading,
+    hasError: !!error,
+    errorMessage: error instanceof Error ? error.message : 'Unknown error'
   })
 
   // Ensure newsItems is always an array
   const safeNewsItems = Array.isArray(newsItems) ? newsItems : [];
 
   // News mutations
-  const { createNews, uploadNewsPhoto } = useNewsMutations()
+  const { createNews, uploadNewsPhoto, deleteNews } = useNewsMutations()
 
   // Handle load more
   const handleLoadMore = async () => {
@@ -84,6 +99,35 @@ export default function NewsPage() {
 
         setIsDialogOpen(false)
         refetch()
+      }
+    })
+  }
+
+  // Handle delete news
+  const handleDeleteNews = (id: number) => {
+    deleteNews.mutate(id, {
+      onSuccess: () => {
+        // Show success message first
+        toast({
+          title: "Berhasil",
+          description: "Berita berhasil dihapus",
+        })
+
+        // Use setTimeout to delay refetch to avoid race conditions
+        setTimeout(() => {
+          refetch().catch(err => {
+            console.log("Error refetching after delete:", err)
+            // Silently handle refetch errors to prevent UI errors
+          })
+        }, 500)
+      },
+      onError: (error) => {
+        console.error("Error deleting news:", error)
+        toast({
+          title: "Gagal",
+          description: "Terjadi kesalahan saat menghapus berita",
+          variant: "destructive",
+        })
       }
     })
   }
@@ -181,6 +225,7 @@ export default function NewsPage() {
               photos={news.photos}
               created_at={news.created_at}
               updated_at={news.updated_at}
+              onDelete={handleDeleteNews}
             />
           ))}
         </div>

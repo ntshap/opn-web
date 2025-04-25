@@ -35,7 +35,20 @@ export default function MembersPage() {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null)
 
   // Fetch members
-  const { data: membersData = {}, isLoading, refetch } = useMembers()
+  const { data: membersData = {}, isLoading, refetch, isError } = useMembers()
+  const [isRefetching, setIsRefetching] = useState(false)
+
+  // Custom refetch function with loading state
+  const handleRefetch = async () => {
+    try {
+      setIsRefetching(true)
+      await refetch()
+    } catch (error) {
+      console.error("Error refetching members:", error)
+    } finally {
+      setIsRefetching(false)
+    }
+  }
 
   // Member mutations
   const { createMember, updateBiodata, deleteUser } = useMemberMutations()
@@ -65,7 +78,10 @@ export default function MembersPage() {
     createMember.mutate(data, {
       onSuccess: () => {
         setIsAddDialogOpen(false)
-        refetch()
+        // Use setTimeout to delay the refetch to avoid race conditions
+        setTimeout(() => {
+          handleRefetch()
+        }, 300)
       }
     })
   }
@@ -80,7 +96,16 @@ export default function MembersPage() {
         onSuccess: () => {
           setIsEditDialogOpen(false)
           setSelectedMember(null)
-          refetch()
+          // Use setTimeout to delay the refetch to avoid race conditions
+          setTimeout(() => {
+            handleRefetch()
+          }, 300)
+        },
+        onError: (error) => {
+          // Close the dialog even if there's an error
+          setIsEditDialogOpen(false)
+          setSelectedMember(null)
+          console.error("Error updating member:", error)
         }
       })
     }
@@ -92,9 +117,21 @@ export default function MembersPage() {
 
     deleteUser.mutate(selectedMember.id, {
       onSuccess: () => {
+        // Close the dialog and clear selection first
         setIsDeleteDialogOpen(false)
         setSelectedMember(null)
-        refetch()
+
+        // Use setTimeout to delay the refetch to avoid race conditions
+        setTimeout(() => {
+          handleRefetch()
+        }, 500)
+      },
+      onError: (error) => {
+        // Close the dialog even if there's an error
+        setIsDeleteDialogOpen(false)
+        setSelectedMember(null)
+
+        console.error("Error deleting member:", error)
       }
     })
   }
@@ -163,7 +200,7 @@ export default function MembersPage() {
         </Tabs>
       </div>
 
-      {isLoading ? (
+      {isLoading || isRefetching ? (
         // Loading skeleton
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {Array.from({ length: 8 }).map((_, index) => (

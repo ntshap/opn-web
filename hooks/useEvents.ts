@@ -216,29 +216,63 @@ export function useEventAttendance(
     queryFn: async ({ signal }) => {
       try {
         console.log('Fetching attendance for event ID:', eventId)
-        // The API service will now handle all errors and return an empty array
-        // instead of throwing errors
-        const result = await eventApi.getEventAttendance(eventId, signal)
-        return result
-      } catch (error) {
-        console.error(`Error fetching attendance for event ID ${eventId}:`, error)
 
-        // Log detailed error information
-        if (axios.isAxiosError(error)) {
-          if (error.response?.status === 404) {
-            console.log(`Attendance not found for event ID ${eventId} (404 response)`)
-          } else if (error.response?.status === 401) {
-            console.log(`Authentication required to fetch attendance for event ID ${eventId} (401 response)`)
-          } else if (error.response?.status === 403) {
-            console.log(`Permission denied to fetch attendance for event ID ${eventId} (403 response)`)
-          } else if (error.response?.status && error.response.status >= 500) {
-            console.log(`Server error (${error.response.status}) fetching attendance for event ID ${eventId}`)
+        // Try to get attendance data from localStorage first
+        if (typeof window !== 'undefined') {
+          try {
+            const savedAttendance = localStorage.getItem(`event_${eventId}_attendance`);
+            if (savedAttendance) {
+              const parsedAttendance = JSON.parse(savedAttendance);
+              console.log(`[useEventAttendance] Loaded saved attendance data from localStorage:`, parsedAttendance);
+
+              if (Array.isArray(parsedAttendance) && parsedAttendance.length > 0) {
+                // Convert the localStorage data to the expected EventAttendance format
+                return parsedAttendance.map(item => ({
+                  id: item.member_id, // Use member_id as id for simplicity
+                  event_id: Number(eventId),
+                  member_id: item.member_id,
+                  member_name: `Member ${item.member_id}`, // We don't have the name in localStorage
+                  status: item.status,
+                  notes: item.notes || "",
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                }));
+              }
+            }
+          } catch (storageError) {
+            console.error("[useEventAttendance] Error loading saved attendance data:", storageError);
           }
         }
 
-        // For any error, return an empty array to prevent UI from breaking
-        // This follows the requirement to return 0/empty when data can't be fetched
-        return []
+        // If no localStorage data, try to fetch from API
+        try {
+          // The API service will now handle all errors and return an empty array
+          // instead of throwing errors
+          const result = await eventApi.getEventAttendance(eventId, signal)
+          return result
+        } catch (error) {
+          console.error(`Error fetching attendance for event ID ${eventId}:`, error)
+
+          // Log detailed error information
+          if (axios.isAxiosError(error)) {
+            if (error.response?.status === 404) {
+              console.log(`Attendance not found for event ID ${eventId} (404 response)`)
+            } else if (error.response?.status === 401) {
+              console.log(`Authentication required to fetch attendance for event ID ${eventId} (401 response)`)
+            } else if (error.response?.status === 403) {
+              console.log(`Permission denied to fetch attendance for event ID ${eventId} (403 response)`)
+            } else if (error.response?.status && error.response.status >= 500) {
+              console.log(`Server error (${error.response.status}) fetching attendance for event ID ${eventId}`)
+            }
+          }
+
+          // For any error, return an empty array to prevent UI from breaking
+          // This follows the requirement to return 0/empty when data can't be fetched
+          return []
+        }
+      } catch (error) {
+        console.error(`[useEventAttendance] Error in main try block:`, error);
+        return [];
       }
     },
     // Type error as unknown for proper type guarding
@@ -273,26 +307,49 @@ export function useAttendanceMutations(eventId: number | string) {
 
   const createOrUpdateAttendance = useMutation({
     // Ensure the input type matches the expected AttendanceFormData[] from lib/api.ts
-    mutationFn: (attendanceData: AttendanceFormData[]) =>
-      eventApi.createUpdateAttendance(eventId, attendanceData),
+    mutationFn: (attendanceData: AttendanceFormData[]) => {
+      console.log(`[useAttendanceMutations] Saving attendance for event ${eventId}:`, attendanceData);
+      return eventApi.createUpdateAttendance(eventId, attendanceData);
+    },
     onSuccess: () => {
+      console.log(`[useAttendanceMutations] Successfully saved attendance for event ${eventId}`);
+
       // Invalidate attendance queries to refetch the list
-      queryClient.invalidateQueries({ queryKey: eventKeys.attendance(eventId) })
+      queryClient.invalidateQueries({ queryKey: eventKeys.attendance(eventId) });
+
+      // Also invalidate the event detail to ensure all data is refreshed
+      queryClient.invalidateQueries({ queryKey: eventKeys.detail(eventId) });
 
       // Show success toast
       toast({
         title: "Berhasil",
         description: "Data kehadiran berhasil disimpan",
-      })
+      });
     },
     onError: (error) => {
+      console.error(`[useAttendanceMutations] Error saving attendance for event ${eventId}:`, error);
+
+      // Show detailed error message
+      let errorMessage = "Terjadi kesalahan saat menyimpan data kehadiran";
+
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          errorMessage = "Anda tidak terautentikasi. Silakan login kembali.";
+        } else if (error.response?.status === 403) {
+          errorMessage = "Anda tidak memiliki izin untuk mengubah data kehadiran.";
+        } else if (error.response?.status === 404) {
+          errorMessage = "Acara tidak ditemukan. Silakan periksa ID acara.";
+        } else if (error.response?.status && error.response.status >= 500) {
+          errorMessage = `Terjadi kesalahan pada server (${error.response.status}). Silakan coba lagi nanti.`;
+        }
+      }
+
       // Show error toast
       toast({
         title: "Gagal",
-        description: "Terjadi kesalahan saat menyimpan data kehadiran",
+        description: errorMessage,
         variant: "destructive",
-      })
-      console.error("Error saving attendance:", error)
+      });
     }
   })
 

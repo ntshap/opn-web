@@ -1,7 +1,7 @@
 import axios, { type AxiosResponse } from "axios";
 import { API_CONFIG } from './config';
 import { apiClient } from './api-client'; // Import the consolidated client
-import { setAuthTokens, removeAuthTokens } from './auth-utils'; // Import auth utils
+import { setAuthTokens, removeAuthTokens, getAuthToken } from './auth-utils'; // Import auth utils
 
 // Helper function to implement retry logic with exponential backoff
 async function withRetry<T>(
@@ -335,8 +335,9 @@ export const eventApi = {
       // Skip the event existence check and directly try to fetch attendance
       // If the event doesn't exist, the attendance endpoint will return 404 anyway
       try {
+        // Make sure to add trailing slash to match backend API
         const response = await withRetry(() =>
-          apiClient.get<EventAttendance[]>(`/events/${eventId}/attendance`, { signal })
+          apiClient.get<EventAttendance[]>(`/events/${eventId}/attendance/`, { signal })
         );
         console.log(`[API] Successfully fetched attendance for event ID: ${eventId}`);
         return response.data;
@@ -373,17 +374,38 @@ export const eventApi = {
   // Create or update event attendance
   createUpdateAttendance: async (eventId: number | string, attendanceData: AttendanceFormData[]): Promise<EventAttendance[]> => {
     try {
+      console.log(`[API] Creating/updating attendance for event ${eventId} with data:`, attendanceData);
+
+      // Validate the data before sending to the API
       const validatedData = attendanceData.map(record => {
         const validStatus = ["Hadir", "Izin", "Alfa", "Tidak Hadir"].includes(record.status) ? (record.status === "Tidak Hadir" ? "Alfa" : record.status) : "Hadir";
-        return { member_id: record.member_id, status: validStatus, notes: record.notes || "" };
+        return {
+          member_id: record.member_id,
+          status: validStatus,
+          notes: record.notes || ""
+        };
       });
+
+      // Make sure the endpoint has a trailing slash to match the backend API
       const response = await withRetry(() =>
-        apiClient.post<EventAttendance[]>(`/events/${eventId}/attendance`, validatedData) // Use imported apiClient
-      )
-      return response.data
+        apiClient.post<EventAttendance[]>(`/events/${eventId}/attendance/`, validatedData)
+      );
+
+      console.log(`[API] Successfully created/updated attendance for event ${eventId}:`, response.data);
+      return response.data;
     } catch (error) {
-      console.error(`Error creating/updating attendance for event ${eventId}:`, error)
-      throw error
+      console.error(`[API] Error creating/updating attendance for event ${eventId}:`, error);
+
+      // Return empty array instead of throwing error to prevent UI from breaking
+      if (axios.isAxiosError(error)) {
+        console.error(`[API] Axios error details:`, {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message
+        });
+      }
+
+      throw error;
     }
   },
 
@@ -684,47 +706,155 @@ export const newsApi = {
     signal?: AbortSignal
   ): Promise<NewsItem[]> => {
     try {
+      // Check if the signal is already aborted
+      if (signal?.aborted) {
+        console.log('Request was aborted before execution')
+        return []
+      }
+
+      // Use the correct URL format with trailing slash to match backend API
       const response = await withRetry(() =>
-        apiClient.get<NewsItem[]>(`${API_CONFIG.ENDPOINTS.NEWS}`, { params, signal, timeout: API_CONFIG.TIMEOUT.DEFAULT }) // Use imported apiClient
+        apiClient.get<NewsItem[]>("/news/", {
+          params,
+          signal,
+          timeout: API_CONFIG.TIMEOUT.DEFAULT,
+          // Add additional headers for debugging
+          headers: {
+            'X-Request-ID': `news-list-${Date.now()}`,
+            'Cache-Control': 'no-cache'
+          }
+        })
       )
-      if (!response || !response.data || !Array.isArray(response.data)) throw new Error('Invalid response format');
-      // ... (validation logic remains the same)
+
+      // Handle invalid response formats gracefully
+      if (!response || !response.data) {
+        console.warn('Empty response received from news API')
+        return []
+      }
+
+      if (!Array.isArray(response.data)) {
+        console.warn('Non-array response received from news API:', response.data)
+        return []
+      }
+
+      // Validate and transform the data
       const validatedData = response.data.map(item => {
-         if (!item || typeof item !== 'object') return null;
-         return {
-           id: typeof item.id === 'number' ? item.id : 0,
-           title: typeof item.title === 'string' ? item.title : '',
-           description: typeof item.description === 'string' ? item.description : '',
-           date: typeof item.date === 'string' ? item.date : new Date().toISOString(),
-           is_published: Boolean(item.is_published),
-           created_at: typeof item.created_at === 'string' ? item.created_at : new Date().toISOString(),
-           updated_at: typeof item.updated_at === 'string' ? item.updated_at : new Date().toISOString(),
-           created_by: String(item.created_by || ''),
-           photos: Array.isArray(item.photos) ? item.photos : []
-         }
-       }).filter((item): item is NewsItem => item !== null);
+        if (!item || typeof item !== 'object') return null;
+        return {
+          id: typeof item.id === 'number' ? item.id : 0,
+          title: typeof item.title === 'string' ? item.title : '',
+          description: typeof item.description === 'string' ? item.description : '',
+          date: typeof item.date === 'string' ? item.date : new Date().toISOString(),
+          is_published: Boolean(item.is_published),
+          created_at: typeof item.created_at === 'string' ? item.created_at : new Date().toISOString(),
+          updated_at: typeof item.updated_at === 'string' ? item.updated_at : new Date().toISOString(),
+          created_by: String(item.created_by || ''),
+          photos: Array.isArray(item.photos) ? item.photos : []
+        }
+      }).filter((item): item is NewsItem => item !== null);
+
       return validatedData;
     } catch (error) {
-      if (axios.isCancel(error)) throw error;
-      if (axios.isAxiosError(error)) {
-        if (error.response?.status === 404) throw new Error('Endpoint not found.');
-        if (error.response?.status === 401) throw new Error('Unauthorized.');
-        if (error.response?.status && error.response.status >= 500) throw new Error('Server error.');
+      // Handle cancellation gracefully
+      if (axios.isCancel(error)) {
+        console.log('News request was cancelled')
+        return []
       }
-      throw error instanceof Error ? error : new Error('Unknown error');
+
+      // Log detailed error information
+      if (axios.isAxiosError(error)) {
+        console.error('Axios error in getNews:', {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+          message: error.message,
+          url: error.config?.url,
+          baseURL: error.config?.baseURL,
+          method: error.config?.method,
+          headers: error.config?.headers
+        })
+
+        // Return empty array for common errors to prevent UI breakage
+        if (error.response?.status === 404) {
+          console.warn('News endpoint not found (404)')
+          return []
+        }
+        if (error.response?.status === 401) {
+          console.warn('Unauthorized access to news (401)')
+          return []
+        }
+        if (error.response?.status === 405) {
+          console.warn('Method not allowed (405) - check API endpoint format')
+          return []
+        }
+        if (error.response?.status && error.response.status >= 500) {
+          console.warn(`Server error (${error.response.status}) when fetching news`)
+          return []
+        }
+      } else if (error instanceof Error) {
+        console.error('Non-Axios error in getNews:', error.message)
+      } else {
+        console.error('Unknown error type in getNews:', error)
+      }
+
+      // Return empty array instead of throwing to prevent UI breakage
+      return []
     }
   },
 
   // Get single news item
   getNewsItem: async (id: number | string, signal?: AbortSignal): Promise<NewsItem> => {
     try {
+      console.log(`Fetching news item with ID: ${id}`)
+
       const response = await withRetry(() =>
-        apiClient.get<NewsItem>(`${API_CONFIG.ENDPOINTS.NEWS}/${id}`, { signal }) // Use imported apiClient
+        apiClient.get<NewsItem>(`${API_CONFIG.ENDPOINTS.NEWS}/${id}/`, {
+          signal,
+          // Add additional headers for debugging
+          headers: {
+            'X-Request-ID': `news-item-${id}-${Date.now()}`,
+            'Cache-Control': 'no-cache'
+          }
+        })
       )
-      if (!response || !response.data) throw new Error('No data received');
-      return response.data
+
+      if (!response || !response.data) {
+        console.error('No data received for news item')
+        throw new Error('No data received')
+      }
+
+      // Log the raw data for debugging
+      console.log(`Raw news item data:`, response.data)
+
+      // Validate and normalize the data to ensure valid date strings
+      const validatedData: NewsItem = {
+        id: typeof response.data.id === 'number' ? response.data.id : Number(id),
+        title: typeof response.data.title === 'string' ? response.data.title : '',
+        description: typeof response.data.description === 'string' ? response.data.description : '',
+        // Ensure date is a valid string
+        date: typeof response.data.date === 'string' && response.data.date
+          ? response.data.date
+          : new Date().toISOString().split('T')[0],
+        is_published: Boolean(response.data.is_published),
+        // Ensure created_at is a valid string
+        created_at: typeof response.data.created_at === 'string' && response.data.created_at
+          ? response.data.created_at
+          : new Date().toISOString(),
+        // Ensure updated_at is a valid string
+        updated_at: typeof response.data.updated_at === 'string' && response.data.updated_at
+          ? response.data.updated_at
+          : new Date().toISOString(),
+        created_by: String(response.data.created_by || ''),
+        photos: Array.isArray(response.data.photos) ? response.data.photos : []
+      }
+
+      console.log(`Validated news item data:`, validatedData)
+      return validatedData
     } catch (error) {
-      if (axios.isCancel(error)) throw new Error('Request was cancelled');
+      if (axios.isCancel(error)) {
+        console.log('News item request was cancelled')
+        throw new Error('Request was cancelled')
+      }
       console.error(`Error fetching news item ${id}:`, error)
       throw error
     }
@@ -759,8 +889,9 @@ export const newsApi = {
   // Delete news item
   deleteNewsItem: async (id: number | string): Promise<void> => {
     try {
+      // Use direct URL format without trailing slash to match backend API
       await withRetry(() =>
-        apiClient.delete(`/news/${id}/`) // Use imported apiClient
+        apiClient.delete(`/news/${id}`)
       )
     } catch (error) {
       console.error('Error deleting news item:', error)
@@ -771,15 +902,99 @@ export const newsApi = {
   // Upload news photo (Modified to use apiClient)
   uploadNewsPhoto: async (id: number | string, file: File): Promise<NewsPhoto> => {
     try {
+      console.log(`Uploading photo for news ID ${id}`)
+
+      // Get the auth token - apiClient will automatically add this in its interceptor
+      // but we'll check it here for validation
+      const authToken = getAuthToken()
+      if (!authToken) {
+        console.error('No authentication token available for photo upload')
+        throw new Error('Authentication required. Please log in again.')
+      }
+
+      console.log(`Auth token available for upload: ${authToken.substring(0, 15)}...`)
+
+      // Create FormData object
       const formData = new FormData()
-      formData.append('file', file)
-      const endpoint = `/news/${id}/photos/`
-      const response = await apiClient.post<NewsPhoto>(endpoint, formData, { // Use imported apiClient
-         headers: { 'Content-Type': 'multipart/form-data' }
+      formData.append('files', file) // Use 'files' as the field name to match backend API
+
+      // Use the correct endpoint URL format for uploads
+      const endpoint = `/uploads/news/${id}/photos`
+
+      console.log(`Using endpoint: ${endpoint}`)
+
+      // Make the request with proper headers
+      // Note: apiClient will automatically add the Authorization header from getAuthToken()
+      const response = await apiClient.post<any>(endpoint, formData, {
+        headers: {
+          // Let the browser set the correct Content-Type with boundary
+          'Content-Type': 'multipart/form-data',
+          // Add additional headers for debugging
+          'X-Request-ID': `upload-${id}-${Date.now()}`
+        },
+        // Increase timeout for uploads
+        timeout: 60000
       });
-      return response.data
+
+      console.log(`Upload response:`, response.data)
+
+      // Process the response to match the expected NewsPhoto format
+      if (response.data && response.data.uploaded_files && Array.isArray(response.data.uploaded_files)) {
+        // Extract the first uploaded file URL
+        const photoUrl = response.data.uploaded_files[0] || '';
+
+        // Ensure the photo URL is properly formatted
+        const formattedPhotoUrl = photoUrl.startsWith('http')
+          ? photoUrl
+          : `${API_CONFIG.BACKEND_URL}${photoUrl.startsWith('/') ? photoUrl : `/${photoUrl}`}`;
+
+        console.log(`Formatted photo URL: ${formattedPhotoUrl}`)
+
+        // Return in the expected format
+        return {
+          id: 0, // ID will be assigned by the backend
+          photo_url: formattedPhotoUrl,
+          uploaded_at: new Date().toISOString()
+        }
+      }
+
+      // If response format is unexpected, try to extract photo_url
+      if (response.data && response.data.photo_url) {
+        const photoUrl = response.data.photo_url;
+
+        // Ensure the photo URL is properly formatted
+        const formattedPhotoUrl = photoUrl.startsWith('http')
+          ? photoUrl
+          : `${API_CONFIG.BACKEND_URL}${photoUrl.startsWith('/') ? photoUrl : `/${photoUrl}`}`;
+
+        return {
+          ...response.data,
+          photo_url: formattedPhotoUrl
+        } as NewsPhoto;
+      }
+
+      // Fallback for unexpected response format
+      throw new Error('Invalid response format from server');
     } catch (error) {
       console.error(`Error uploading news photo for news ID ${id}:`, error)
+
+      // Log detailed error information
+      if (axios.isAxiosError(error)) {
+        console.error('Axios error details:', {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+          url: error.config?.url,
+          method: error.config?.method,
+          headers: error.config?.headers
+        })
+
+        // Handle specific error cases
+        if (error.response?.status === 401) {
+          throw new Error('Authentication required. Please log in again.')
+        }
+      }
+
       throw error
     }
   },
@@ -1560,12 +1775,39 @@ export const memberApi = {
   deleteUser: async (userId: number | string): Promise<void> => {
     try {
       console.log(`[API] Deleting user with ID: ${userId}`);
+
+      // Add a timeout to the delete request to prevent it from hanging
       await withRetry(() =>
-        apiClient.delete(`/members/user/${userId}`)
-      )
+        apiClient.delete(`/members/user/${userId}`, {
+          timeout: 10000 // 10 second timeout
+        })
+      );
+
       console.log(`[API] Successfully deleted user with ID: ${userId}`);
+
+      // Add a small delay to ensure the backend has time to process the deletion
+      await new Promise(resolve => setTimeout(resolve, 300));
+
     } catch (error) {
+      if (axios.isCancel(error)) {
+        console.log(`[API] Delete user request was cancelled for ID: ${userId}`);
+        // Don't throw for cancellation, just return
+        return;
+      }
+
       console.error(`[API] Error deleting user with ID ${userId}:`, error);
+
+      // Log more detailed error information
+      if (axios.isAxiosError(error)) {
+        console.error(`[API] Axios error details for delete user ${userId}:`, {
+          message: error.message,
+          code: error.code,
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          responseData: error.response?.data
+        });
+      }
+
       throw error;
     }
   },

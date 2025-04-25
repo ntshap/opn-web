@@ -18,9 +18,9 @@ export async function GET(
     // Skip the event existence check and directly fetch attendance
     console.log(`[API Route] Proceeding to fetch attendance for event ID ${id}`);
 
-    // Now try to get the attendance
+    // Now try to get the attendance - make sure to add trailing slash to match backend API
     try {
-      const attendanceResponse = await handleApiRoute(request, `/events/${id}/attendance`, {
+      const attendanceResponse = await handleApiRoute(request, `/events/${id}/attendance/`, {
         requireAuth: true,
         timeout: 15000,
       });
@@ -60,8 +60,8 @@ export async function POST(
     const { id } = await Promise.resolve(params);
     console.log(`[API Route] POST /api/v1/events/${id}/attendance/ - Forwarding request to backend`);
 
-    // Try to create/update attendance
-    const response = await handleApiRoute(request, `/events/${id}/attendance`, {
+    // Try to create/update attendance - make sure to add trailing slash to match backend API
+    const response = await handleApiRoute(request, `/events/${id}/attendance/`, {
       requireAuth: true,
       timeout: 20000,
     });

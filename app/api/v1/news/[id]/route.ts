@@ -29,5 +29,6 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   const id = params.id;
-  return handleApiRoute(request, `/news/${id}/`);
+  // Remove trailing slash to match backend API
+  return handleApiRoute(request, `/news/${id}`);
 }

@@ -109,7 +109,11 @@ export function MeetingMinutesForm({ defaultValues, eventId, onSubmit, isSubmitt
             <FormItem>
               <FormLabel>Deskripsi</FormLabel>
               <FormControl>
-                <div className="border rounded-md">
+                <div
+                  className="border rounded-md"
+                  onClick={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
+                >
                   <TipTapEditor
                     content={field.value || ''}
                     onChange={(html) => {

@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from "react"
+import axios from "axios"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -15,7 +16,14 @@ interface MemberAttendanceFormProps {
   onAttendanceChange?: (records: Array<{ member_id: number; status: string; notes: string }>) => void
 }
 
-export function MemberAttendanceForm({ eventId, onAttendanceChange }: MemberAttendanceFormProps) {
+// Export the component with forwardRef to allow parent components to access its methods
+export const MemberAttendanceForm = forwardRef<
+  {
+    handleSaveAttendance: () => Promise<void>,
+    getAttendanceData: () => Array<{ member_id: number; status: string; notes: string }>
+  },
+  MemberAttendanceFormProps
+>(({ eventId, onAttendanceChange }, ref) => {
   const { toast } = useToast()
   const { data: members = [], isLoading: isMembersLoading } = useMembers()
   const { createOrUpdateAttendance } = useAttendanceMutations(eventId)
@@ -91,6 +99,18 @@ export function MemberAttendanceForm({ eventId, onAttendanceChange }: MemberAtte
 
         console.log('Normalized members data:', normalizedMembers);
 
+        // Try to load saved attendance data from localStorage
+        let savedAttendanceData: any[] = [];
+        try {
+          const savedAttendance = localStorage.getItem(`event_${eventId}_attendance`);
+          if (savedAttendance) {
+            savedAttendanceData = JSON.parse(savedAttendance);
+            console.log(`[MemberAttendanceForm] Loaded saved attendance data from localStorage:`, savedAttendanceData);
+          }
+        } catch (storageError) {
+          console.error("[MemberAttendanceForm] Error loading saved attendance data:", storageError);
+        }
+
         // Create initial attendance records from the normalized data
         const initialRecords = Object.entries(normalizedMembers).flatMap(([division, membersList]) => {
           if (!Array.isArray(membersList) || membersList.length === 0) {
@@ -106,12 +126,15 @@ export function MemberAttendanceForm({ eventId, onAttendanceChange }: MemberAtte
 
             if (isNaN(memberId) || memberId <= 0) return null;
 
+            // Check if we have saved attendance data for this member
+            const savedRecord = savedAttendanceData.find(a => a.member_id === memberId);
+
             return {
               member_id: memberId,
               name: member.full_name || 'Tidak ada nama',
               division: division,
-              status: "Hadir", // Default status is present
-              notes: ""
+              status: savedRecord ? savedRecord.status : "Hadir", // Use saved status or default
+              notes: savedRecord ? (savedRecord.notes || "") : ""
             };
           }).filter(Boolean); // Remove null entries
         });
@@ -136,7 +159,7 @@ export function MemberAttendanceForm({ eventId, onAttendanceChange }: MemberAtte
         setIsInitialized(true);
       }
     }
-  }, [members, isInitialized])
+  }, [members, isInitialized, eventId])
 
   // Filter records by active division for better performance
   const filteredRecords = useMemo(() => {
@@ -186,10 +209,33 @@ export function MemberAttendanceForm({ eventId, onAttendanceChange }: MemberAtte
     return () => clearTimeout(timer)
   }, [attendanceRecords, onAttendanceChange, isInitialized])
 
-  // Handle save all attendance records
+  // Expose functions to parent components via ref
+  useImperativeHandle(ref, () => ({
+    handleSaveAttendance: async () => {
+      return await handleSaveAttendance();
+    },
+    getAttendanceData: () => {
+      // Format data and ensure status values are valid
+      return attendanceRecords.map(record => {
+        // Validate status to ensure it's one of the expected values
+        const validStatus = record.status === "Hadir" ? "Hadir" :
+                           record.status === "Izin" ? "Izin" :
+                           record.status === "Alfa" ? "Alfa" :
+                           record.status === "Tidak Hadir" ? "Alfa" : "Hadir";
+
+        return {
+          member_id: record.member_id,
+          status: validStatus,
+          notes: record.notes || ""
+        };
+      });
+    }
+  }));
+
+  // Handle save all attendance records - store locally without API call
   const handleSaveAttendance = async () => {
     try {
-      // Format data for API and ensure status values are valid
+      // Format data and ensure status values are valid
       const attendanceData = attendanceRecords.map(record => {
         // Validate status to ensure it's one of the expected values
         const validStatus = record.status === "Hadir" ? "Hadir" :
@@ -200,26 +246,33 @@ export function MemberAttendanceForm({ eventId, onAttendanceChange }: MemberAtte
         return {
           member_id: record.member_id,
           status: validStatus,
-          notes: record.notes
+          notes: record.notes || ""
         };
       });
 
-      console.log(`Saving ${attendanceData.length} attendance records for event ${eventId}`);
+      console.log(`[MemberAttendanceForm] Saving ${attendanceData.length} attendance records for event ${eventId} locally`);
 
-      // Call API to save attendance
-      await createOrUpdateAttendance.mutateAsync(attendanceData)
+      // Store attendance data in localStorage for persistence
+      try {
+        localStorage.setItem(`event_${eventId}_attendance`, JSON.stringify(attendanceData));
+        console.log(`[MemberAttendanceForm] Saved attendance data to localStorage`);
+      } catch (storageError) {
+        console.error("[MemberAttendanceForm] Error saving to localStorage:", storageError);
+      }
 
-      toast({
-        title: "Berhasil",
-        description: "Data kehadiran berhasil disimpan",
-      })
+      // Notify parent component about the change
+      if (onAttendanceChange && typeof onAttendanceChange === 'function') {
+        console.log('[MemberAttendanceForm] Notifying parent component about attendance change');
+        onAttendanceChange(attendanceData);
+      }
+
+      // Return a resolved promise to indicate success
+      return Promise.resolve();
     } catch (error) {
-      console.error("Error saving attendance:", error)
-      toast({
-        title: "Error",
-        description: "Gagal menyimpan data kehadiran",
-        variant: "destructive"
-      })
+      console.error("[MemberAttendanceForm] Error saving attendance:", error);
+
+      // Return a rejected promise to indicate failure
+      return Promise.reject(error);
     }
   }
 
@@ -265,7 +318,7 @@ export function MemberAttendanceForm({ eventId, onAttendanceChange }: MemberAtte
               </div>
 
               {/* Use ScrollArea for better performance with large lists */}
-              <ScrollArea className="h-[400px]">
+              <ScrollArea className="h-[300px]">
                 {filteredRecords.map((record) => (
                   <div key={record.member_id} className="grid grid-cols-4 gap-4 p-4 border-b bg-white even:bg-gray-50">
                     <div>{record.name}</div>
@@ -295,9 +348,11 @@ export function MemberAttendanceForm({ eventId, onAttendanceChange }: MemberAtte
                 ))}
               </ScrollArea>
             </div>
+
+            {/* Simpan button is now handled by the parent component */}
           </Tabs>
         </>
       )}
     </div>
   )
-}
+});

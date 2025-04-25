@@ -15,18 +15,34 @@ export const memberKeys = {
 
 // Hook for fetching all members
 export function useMembers(filters?: { age_gt?: number }) {
+  const { toast } = useToast()
+
   return useQuery({
     queryKey: memberKeys.list(filters || {}),
     queryFn: ({ signal }: { signal?: AbortSignal }) => memberApi.getMembers(signal, filters),
     retry: (failureCount, error: any) => {
       // Don't retry if the request was canceled
       if (axios.isCancel(error)) {
+        console.log("[useMembers] Request was canceled, not retrying");
         return false
       }
-      // Retry up to 3 times for other errors
-      return failureCount < 3
+      // Retry up to 2 times for other errors
+      return failureCount < 2
     },
     // Return a default value on error to prevent UI from breaking
+    gcTime: 0, // Don't keep failed queries in cache
+    staleTime: 30000, // Consider data fresh for 30 seconds
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
+    onError: (error) => {
+      // Only show toast for non-cancellation errors
+      if (!axios.isCancel(error)) {
+        toast({
+          title: "Gagal memuat data anggota",
+          description: "Terjadi kesalahan saat memuat data anggota",
+          variant: "destructive",
+        })
+      }
+    }
   })
 }
 
@@ -125,14 +141,17 @@ export function useMemberMutations() {
   const deleteUser = useMutation({
     mutationFn: (userId: number | string) => memberApi.deleteUser(userId),
     onSuccess: () => {
-      // Invalidate all member queries to refetch the list
-      queryClient.invalidateQueries({ queryKey: memberKeys.lists() })
-
-      // Show success toast
+      // Show success toast first
       toast({
         title: "Berhasil",
         description: "Pengguna berhasil dihapus",
       })
+
+      // Use setTimeout to delay the invalidation to avoid race conditions
+      setTimeout(() => {
+        // Invalidate all member queries to refetch the list
+        queryClient.invalidateQueries({ queryKey: memberKeys.lists() })
+      }, 300)
     },
     onError: (error) => {
       // Show error toast

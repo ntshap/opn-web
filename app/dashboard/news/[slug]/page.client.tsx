@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ArrowLeft, Calendar, Edit, Trash, User } from "lucide-react"
-import Image from "next/image"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { formatImageUrl } from "@/lib/image-utils"
+import { AuthenticatedImage } from "@/app/components/authenticated-image"
 import { NewsForm } from "../components/news-form"
 import { PhotoTest } from "../components/photo-test"
 import { format } from "date-fns"
@@ -38,9 +38,33 @@ export default function NewsDetailPageClient({ slug }: { slug: string }) {
     }
   }, [newsItem])
 
-  // Format date
+  // Format date with error handling
   const formatDate = (dateString: string) => {
-    return format(new Date(dateString), "dd MMMM yyyy", { locale: id })
+    try {
+      // Log the date string for debugging
+      console.log('Formatting date string:', dateString)
+
+      // Check if the date string is valid
+      if (!dateString || dateString === 'Invalid Date' || dateString === 'undefined') {
+        console.warn('Invalid date string:', dateString)
+        return 'Tanggal tidak valid'
+      }
+
+      // Try to parse the date
+      const date = new Date(dateString)
+
+      // Check if the date is valid
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid date after parsing:', dateString)
+        return 'Tanggal tidak valid'
+      }
+
+      // Format the date
+      return format(date, "dd MMMM yyyy", { locale: id })
+    } catch (error) {
+      console.error('Error formatting date:', error, 'Date string:', dateString)
+      return 'Tanggal tidak valid'
+    }
   }
 
   // Handle back button
@@ -237,30 +261,24 @@ export default function NewsDetailPageClient({ slug }: { slug: string }) {
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {newsItem.photos && newsItem.photos.length > 0 && newsItem.photos[0].photo_url ? (
-            <div className="relative h-64 md:h-96 w-full rounded-md overflow-hidden">
-              {/* Log the photo URL for debugging */}
-              {console.log('Photo URL:', newsItem.photos[0].photo_url)}
+          <div className="relative h-64 md:h-96 w-full rounded-md overflow-hidden">
+            {/* Log the photo URL for debugging */}
+            {newsItem.photos && newsItem.photos.length > 0 && newsItem.photos[0].photo_url &&
+              console.log('Photo URL:', newsItem.photos[0].photo_url)
+            }
 
-              {/* Use img tag with formatted URL and fallback */}
-              <img
-                src={formatImageUrl(newsItem.photos[0].photo_url)}
-                alt={newsItem.title}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  console.error(`Error loading image: ${newsItem.photos[0].photo_url}`)
-                  // Set fallback image when the original fails to load
-                  e.currentTarget.src = "/placeholder-news.svg"
-                  // Add a class to indicate this is a fallback image
-                  e.currentTarget.classList.add("fallback-image")
-                }}
-              />
-            </div>
-          ) : (
-            <div className="relative h-64 md:h-96 w-full rounded-md overflow-hidden bg-muted flex items-center justify-center">
-              <p className="text-muted-foreground">Tidak ada foto</p>
-            </div>
-          )}
+            {/* Use our custom AuthenticatedImage component */}
+            <AuthenticatedImage
+              src={newsItem.photos && newsItem.photos.length > 0 ? newsItem.photos[0].photo_url : null}
+              alt={newsItem.title}
+              fill
+              className="object-cover"
+              fallbackSrc="/placeholder-news.svg"
+              onLoadError={(error) => {
+                console.error(`Error loading image in NewsDetail: ${newsItem.photos?.[0]?.photo_url}`, error);
+              }}
+            />
+          </div>
 
           <div className="prose max-w-none">
             <div dangerouslySetInnerHTML={{ __html: newsItem.description }} />

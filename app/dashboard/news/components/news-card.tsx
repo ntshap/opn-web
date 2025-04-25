@@ -1,9 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Calendar, User, MessageSquare, ThumbsUp } from "lucide-react"
-import Image from "next/image"
+import { Calendar, User, Trash2, Edit } from "lucide-react"
+import { AuthenticatedImage } from "@/app/components/authenticated-image"
 import { formatImageUrl } from "@/lib/image-utils"
 import { useState } from "react"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 
 interface NewsCardProps {
   id: number
@@ -14,6 +15,7 @@ interface NewsCardProps {
   photos: Array<{ id: number, photo_url: string }>
   created_at: string
   updated_at: string
+  onDelete?: (id: number) => void
 }
 
 export function NewsCard({
@@ -24,7 +26,8 @@ export function NewsCard({
   is_published,
   photos,
   created_at,
-  updated_at
+  updated_at,
+  onDelete
 }: NewsCardProps) {
   const [imageError, setImageError] = useState(false);
 
@@ -33,35 +36,33 @@ export function NewsCard({
     return new Date(dateString).toLocaleDateString('id-ID', options)
   }
 
-  // Check if there are photos and no image error
-  const hasPhoto = !imageError && photos && photos.length > 0 && photos[0].photo_url;
-  const photoUrl = hasPhoto ? formatImageUrl(photos[0].photo_url) : null;
+  // Check if there are photos
+  const hasPhoto = photos && photos.length > 0 && photos[0].photo_url;
+  const photoUrl = hasPhoto ? photos[0].photo_url : null;
+
+  // Log the photo URL for debugging
+  if (hasPhoto) {
+    console.log(`[NewsCard] Photo URL for news ${id}: ${photoUrl}`);
+  }
 
   return (
     <Card className="overflow-hidden flex flex-col h-full">
       <div className="relative h-48 w-full">
-        {photoUrl ? (
-          <div className="relative w-full h-full">
-            {/* Use next/image for better performance and automatic optimization */}
-            <Image
-              src={photoUrl}
-              alt={title}
-              fill
-              className="object-cover"
-              onError={(e) => {
-                console.error(`Error loading image in NewsCard: ${photoUrl}`);
-                setImageError(true);
-              }}
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              priority={false}
-              quality={75}
-            />
-          </div>
-        ) : (
-          <div className="h-full w-full flex items-center justify-center bg-muted">
-            <p className="text-muted-foreground text-sm">Tidak ada foto</p>
-          </div>
-        )}
+        <div className="relative w-full h-full">
+          {/* Use our custom AuthenticatedImage component */}
+          <AuthenticatedImage
+            src={photoUrl}
+            alt={title}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            fallbackSrc="/placeholder-news.svg"
+            onLoadError={(error) => {
+              console.error(`Error loading image in NewsCard: ${photoUrl}`, error);
+              setImageError(true);
+            }}
+          />
+        </div>
       </div>
       <CardHeader>
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
@@ -92,11 +93,40 @@ export function NewsCard({
             <span>Admin</span>
           </div>
         </div>
-        <Button variant="outline" size="sm" asChild>
-          <a href={`/dashboard/news/${id}`} className="no-underline">
-            Baca Selengkapnya
-          </a>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <a href={`/dashboard/news/${id}`} className="no-underline">
+              Baca Selengkapnya
+            </a>
+          </Button>
+
+          {onDelete && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Hapus Berita</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Apakah Anda yakin ingin menghapus berita ini? Tindakan ini tidak dapat dibatalkan.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => onDelete(id)}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Hapus
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
       </CardFooter>
     </Card>
   )

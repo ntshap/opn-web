@@ -19,6 +19,7 @@ import Image from "next/image"
 import { Card, CardContent } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { formatImageUrl } from "@/lib/image-utils"
+import { AuthenticatedImage } from "@/app/components/authenticated-image"
 
 // Form schema
 const formSchema = z.object({
@@ -266,17 +267,15 @@ export function NewsForm({ defaultValues, existingPhotos = [], newsId, onSubmit,
                   {existingPhotos.map((photo) => (
                     <div key={photo.id} className="relative group">
                       <div className="relative h-32 w-32 rounded-md overflow-hidden">
-                        {/* Use img tag with formatted URL and fallback */}
-                        <img
-                          src={formatImageUrl(photo.photo_url)}
+                        {/* Use our custom AuthenticatedImage component */}
+                        <AuthenticatedImage
+                          src={photo.photo_url}
                           alt={`Photo ${photo.id}`}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            console.error(`Error loading image in NewsForm: ${photo.photo_url}`)
-                            // Set fallback image when the original fails to load
-                            e.currentTarget.src = "/placeholder-news.svg"
-                            // Add a class to indicate this is a fallback image
-                            e.currentTarget.classList.add("fallback-image")
+                          fill
+                          className="object-cover"
+                          fallbackSrc="/placeholder-news.svg"
+                          onLoadError={(error) => {
+                            console.error(`Error loading image in NewsForm: ${photo.photo_url}`, error);
                           }}
                         />
                       </div>

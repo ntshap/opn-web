@@ -9,7 +9,6 @@ import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
 import { useEventMutations } from "@/hooks/useEvents"
 import { DeleteConfirmationDialog } from "@/components/dashboard/delete-confirmation-dialog"
-import { EventDetailModal } from "@/components/dashboard/event-detail-modal"
 
 interface Event {
   id: number
@@ -33,7 +32,6 @@ export function EventsList() {
   const [error, setError] = useState<string | null>(null)
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [showDetailModal, setShowDetailModal] = useState(false)
 
   // Get event mutations
   const { deleteEvent } = useEventMutations()
@@ -95,8 +93,7 @@ export function EventsList() {
   }, [toast])
 
   const handleViewEvent = (event: Event) => {
-    setSelectedEvent(event)
-    setShowDetailModal(true)
+    router.push(`/dashboard/events/${event.id}`)
   }
 
   const handleEditEvent = (event: Event) => {
@@ -106,11 +103,6 @@ export function EventsList() {
   const handleDeleteEvent = (event: Event) => {
     setSelectedEvent(event)
     setShowDeleteDialog(true)
-  }
-
-  const handleCloseDetailModal = () => {
-    setSelectedEvent(null)
-    setShowDetailModal(false)
   }
 
   const handleCloseDeleteDialog = () => {
@@ -223,25 +215,6 @@ export function EventsList() {
           </div>
         ))}
       </div>
-
-      {/* Event Detail Modal */}
-      {selectedEvent && (
-        <EventDetailModal
-          event={selectedEvent}
-          show={showDetailModal}
-          onClose={handleCloseDetailModal}
-          onUpdate={(updatedEvent) => {
-            // Update the selected event with the new data
-            setSelectedEvent(updatedEvent)
-
-            // Also update the event in the events list
-            const updatedEvents = events.map(e =>
-              e.id === updatedEvent.id ? updatedEvent : e
-            )
-            setEvents(updatedEvents)
-          }}
-        />
-      )}
 
       {/* Delete Confirmation Dialog */}
       {selectedEvent && (

@@ -10,10 +10,16 @@ import { getAuthToken } from '@/lib/auth-utils';
  * @returns A complete URL that can be used in an img tag
  */
 export function formatImageUrl(url: string | null | undefined, contextId?: string | number): string {
-  // If the URL is null or undefined, return placeholder image
+  // If the URL is null or undefined, return empty string to prevent infinite loops
   if (!url) {
     console.log('[formatImageUrl] URL is null or undefined');
-    return '/placeholder-news.svg';
+    return '';
+  }
+
+  // If the URL is a placeholder, return empty string to prevent infinite loops
+  if (url.includes('placeholder')) {
+    console.log('[formatImageUrl] URL is a placeholder, returning empty string to prevent loops');
+    return '';
   }
 
   try {
@@ -60,9 +66,19 @@ export function formatImageUrl(url: string | null | undefined, contextId?: strin
         cleanUrl = `/${cleanUrl}`;
       }
 
-      // Construct the full URL directly
-      const fullUrl = `${baseUrl}${cleanUrl}`;
-      console.log(`[formatImageUrl] Returning direct full URL: ${fullUrl}`);
+      // Preserve double slashes as required by the backend
+      // The backend expects URLs like https://backend-project-pemuda.onrender.com//uploads/...
+      const fullUrl = `${baseUrl}//${cleanUrl.startsWith('/') ? cleanUrl.substring(1) : cleanUrl}`;
+
+      console.log(`[formatImageUrl] Returning direct full URL with double slash: ${fullUrl}`);
+
+      // Log the URL components for debugging
+      console.log(`[formatImageUrl] URL components:`, {
+        baseUrl,
+        cleanUrl,
+        fullUrl
+      });
+
       return fullUrl;
     }
 
@@ -86,30 +102,33 @@ export function formatImageUrl(url: string | null | undefined, contextId?: strin
         }
       }
 
-      // Construct the full URL directly
-      const fullUrl = `${baseUrl}/${cleanUrl}`;
-      console.log(`[formatImageUrl] Returning direct full URL: ${fullUrl}`);
+      // Preserve double slashes as required by the backend
+      const fullUrl = `${baseUrl}//${cleanUrl}`;
+      console.log(`[formatImageUrl] Returning direct full URL with double slash: ${fullUrl}`);
       return fullUrl;
     }
 
     // If it's a relative URL starting with /, add the base URL
     if (url.startsWith('/')) {
-      const fullUrl = `${baseUrl}${url}`;
-      console.log(`[formatImageUrl] Returning direct full URL: ${fullUrl}`);
+      // Preserve double slashes as required by the backend
+      const fullUrl = `${baseUrl}//${url.startsWith('/') ? url.substring(1) : url}`;
+      console.log(`[formatImageUrl] Returning direct full URL with double slash: ${fullUrl}`);
       return fullUrl;
     }
 
     // Check if it might be a filename only (no path)
     if (!url.includes('/')) {
       // Assume it's a filename that should be in the uploads directory
-      const fullUrl = `${baseUrl}/uploads/${url}`;
-      console.log(`[formatImageUrl] Returning direct full URL: ${fullUrl}`);
+      // Preserve double slashes as required by the backend
+      const fullUrl = `${baseUrl}//uploads/${url}`;
+      console.log(`[formatImageUrl] Returning direct full URL with double slash: ${fullUrl}`);
       return fullUrl;
     }
 
     // For any other URL, assume it's a relative path and add the base URL
-    const fullUrl = `${baseUrl}/uploads/${url}`;
-    console.log(`[formatImageUrl] Returning direct full URL: ${fullUrl}`);
+    // Preserve double slashes as required by the backend
+    const fullUrl = `${baseUrl}//uploads/${url}`;
+    console.log(`[formatImageUrl] Returning direct full URL with double slash: ${fullUrl}`);
     return fullUrl;
   } catch (error) {
     console.error('[formatImageUrl] Error formatting URL:', error);
@@ -124,7 +143,13 @@ export function formatImageUrl(url: string | null | undefined, contextId?: strin
  * @returns A URL that can be used in an img tag with authentication
  */
 export function getAuthenticatedImageUrl(url: string | null | undefined): string {
-  if (!url) return '/placeholder-news.svg';
+  if (!url) return '';
+
+  // If the URL is a placeholder, return empty string to prevent infinite loops
+  if (url.includes('placeholder')) {
+    console.log('[getAuthenticatedImageUrl] URL is a placeholder, returning empty string to prevent loops');
+    return '';
+  }
 
   // The URL might already be a complete URL from formatImageUrl
   // We'll use it directly in that case
@@ -144,9 +169,10 @@ export function getAuthenticatedImageUrl(url: string | null | undefined): string
   }
 
   // Use our raw-image API proxy route that will add the Authorization header server-side
+  // This is the proper way to handle authentication for images
   const proxyUrl = `/api/v1/raw-image?url=${encodeURIComponent(fullUrl)}`;
-
   console.log(`[getAuthenticatedImageUrl] Using raw-image API proxy: ${proxyUrl}`);
+
   return proxyUrl;
 }
 

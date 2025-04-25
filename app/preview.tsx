@@ -161,19 +161,7 @@ export default function DashboardPreview() {
                       </div>
                     </div>
                   </CardContent>
-                  <CardFooter className="pt-0">
-                    <div
-                      className={`flex items-center text-sm ${stat.trend === "up" ? "text-green-600" : "text-red-600"}`}
-                    >
-                      {stat.trend === "up" ? (
-                        <ArrowUpRight className="mr-1 h-4 w-4" />
-                      ) : (
-                        <ArrowDownRight className="mr-1 h-4 w-4" />
-                      )}
-                      <span>{stat.percentage}%</span>
-                      <span className="ml-1 text-slate-500">From last month</span>
-                    </div>
-                  </CardFooter>
+
                 </Card>
               ))}
             </div>

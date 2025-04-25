@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import axios from "axios"
 import { Calendar, Clock, MapPin, Users, Image, Download, Edit, Trash2, Check, X, Loader2, ImageIcon, Upload } from "lucide-react"
 import { formatImageUrl } from "@/lib/image-utils"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
@@ -111,6 +112,7 @@ export function EventDetailModal({ show, onClose, event, onUpdate }: EventDetail
     status: "Hadir",
     notes: ""
   })
+  const [isSavingAttendance, setIsSavingAttendance] = useState(false)
 
   // Use photos from the event data with proper logging
   const photos = event.photos?.map((photo: EventPhoto) => { // Add type EventPhoto
@@ -133,6 +135,66 @@ export function EventDetailModal({ show, onClose, event, onUpdate }: EventDetail
 
   // Log the final photos array
   console.log("[EventDetailModal] Final photos array:", photos);
+
+  // Handle saving attendance
+  const handleSaveAttendance = async () => {
+    const attendee = attendees.find(a => a.id === selectedAttendee);
+    if (!attendee) return;
+
+    setIsSavingAttendance(true);
+    try {
+      console.log(`Saving attendance for member ${attendee.member_id || attendee.id} with status: ${attendanceForm.status}`);
+
+      // Format the data for the API and ensure status is one of the allowed values
+      const status = attendanceForm.status === "Hadir" ? "Hadir" :
+                    attendanceForm.status === "Izin" ? "Izin" : "Alfa";
+
+      const attendanceData = [{
+        member_id: attendee.member_id || attendee.id,
+        status: status,
+        notes: attendanceForm.notes
+      }];
+
+      // Call the API to save the attendance
+      await eventApi.createUpdateAttendance(event.id, attendanceData);
+
+      // Show success toast
+      toast({
+        title: "Berhasil",
+        description: "Data kehadiran berhasil disimpan",
+      });
+
+      // Refresh the attendance data
+      eventApi.getEventAttendance(event.id)
+        .then(data => {
+          console.log('Fetched updated attendance data:', data);
+          setAttendees(data);
+
+          // Update the parent component with the refreshed event data
+          if (onUpdate && typeof onUpdate === 'function') {
+            onUpdate({
+              ...event,
+              attendance: data
+            });
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching updated attendance data:', error);
+        });
+
+      // Close the form
+      setSelectedAttendee(null);
+    } catch (error) {
+      console.error("Error updating attendance:", error);
+      toast({
+        title: "Gagal",
+        description: "Gagal menyimpan data kehadiran. Silakan coba lagi.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingAttendance(false);
+    }
+  };
 
   const getStatusColor = (status: string): "default" | "destructive" | "outline" | "secondary" => { // Update return type
     switch (status.toLowerCase()) {
@@ -382,9 +444,21 @@ export function EventDetailModal({ show, onClose, event, onUpdate }: EventDetail
 
                 <div className="flex justify-end gap-2 mt-4">
                   <Button variant="outline" onClick={() => setSelectedAttendee(null)}>Batal</Button>
-                  <Button>
-                    <Check className="mr-2 h-4 w-4" />
-                    Simpan
+                  <Button
+                    onClick={handleSaveAttendance}
+                    disabled={isSavingAttendance}
+                  >
+                    {isSavingAttendance ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Menyimpan...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="mr-2 h-4 w-4" />
+                        Simpan
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>

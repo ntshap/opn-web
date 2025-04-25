@@ -1,15 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * Server-side API route to proxy image requests with authentication
- * This is a simplified version that just returns a text response to stop the infinite requests
+ * EMERGENCY FIX: This route is completely disabled to prevent infinite loops
+ * Instead of proxying images, we'll return a simple SVG placeholder
  */
 export async function GET(request: NextRequest) {
-  // Return a simple text response to stop the infinite requests
-  return new NextResponse('Image loading disabled to prevent infinite requests', {
+  // Return a simple SVG placeholder
+  const svgPlaceholder = `<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+    <rect width="200" height="200" fill="#f0f0f0"/>
+    <text x="50%" y="50%" font-family="Arial" font-size="14" fill="#666" text-anchor="middle">Image unavailable</text>
+  </svg>`;
+
+  return new NextResponse(svgPlaceholder, {
     status: 200,
     headers: {
-      'Content-Type': 'text/plain',
+      'Content-Type': 'image/svg+xml',
       'Cache-Control': 'public, max-age=86400',
     },
   });

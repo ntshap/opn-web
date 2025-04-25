@@ -29,10 +29,15 @@ export function MemberCard({ member, onEdit, onDelete }: MemberCardProps) {
     <Card className="overflow-hidden">
       <CardHeader className="p-4 pb-0 flex flex-col items-center">
         <Avatar className="h-20 w-20 mb-2">
-          {member.photo_url || (member.member_info && member.member_info.photo_url) ? (
+          {member.photo_url && member.photo_url !== 'string' ||
+           (member.member_info && member.member_info.photo_url && member.member_info.photo_url !== 'string') ? (
             <ProtectedImage
-              filePath={member.photo_url || (member.member_info && member.member_info.photo_url) || ''}
-              alt={`Photo of ${member.full_name || 'member'}`}
+              filePath={
+                (member.photo_url && member.photo_url !== 'string' ? member.photo_url : '') ||
+                (member.member_info && member.member_info.photo_url && member.member_info.photo_url !== 'string' ? member.member_info.photo_url : '') ||
+                ''
+              }
+              alt={`Photo of ${member.full_name && member.full_name !== 'string' ? member.full_name : 'member'}`}
               className="h-full w-full object-cover"
               fallbackSrc="/default-avatar.png"
             />

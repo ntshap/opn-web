@@ -394,7 +394,15 @@ function MeetingMinutesListContent({ eventId }: MeetingMinutesListProps) {
                 Tambah Notulensi
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px]">
+            <DialogContent
+              className="sm:max-w-[600px]"
+              onPointerDownOutside={(e) => {
+                // Prevent closing when clicking inside the editor
+                if (e.target && (e.target as HTMLElement).closest('.tiptap')) {
+                  e.preventDefault();
+                }
+              }}
+            >
               <DialogHeader>
                 <DialogTitle>Tambah Notulensi Rapat</DialogTitle>
               </DialogHeader>

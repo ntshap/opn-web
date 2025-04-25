@@ -74,17 +74,23 @@ export function EventFormClient({ event, isEditing = false, onSuccess }: EventFo
               .then(attendanceData => {
                 console.log('Fetched attendance data:', attendanceData);
 
-                // Enhance attendance data with member names and divisions
-                const enhancedAttendees = attendanceData.map(attendance => {
-                  const member = allMembers.find(m => m.id === attendance.member_id);
-                  return {
-                    ...attendance,
-                    name: member?.name || 'Anggota',
-                    division: member?.division || 'Tidak diketahui'
-                  };
-                });
-
-                setAttendees(enhancedAttendees);
+                // Check if attendanceData is an array before using map
+                if (Array.isArray(attendanceData) && attendanceData.length > 0) {
+                  // Enhance attendance data with member names and divisions
+                  const enhancedAttendees = attendanceData.map(attendance => {
+                    const member = allMembers.find(m => m.id === attendance.member_id);
+                    return {
+                      ...attendance,
+                      name: member?.name || 'Anggota',
+                      division: member?.division || 'Tidak diketahui'
+                    };
+                  });
+                  setAttendees(enhancedAttendees);
+                } else {
+                  // If no attendance data or not an array, set empty array
+                  console.log('No attendance data found or invalid format');
+                  setAttendees([]);
+                }
               })
               .catch(error => {
                 console.error('Error fetching attendance data:', error);

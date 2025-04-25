@@ -140,6 +140,21 @@ export default function FinancePage() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader>
+            <CardTitle>Saldo Saat Ini</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-8 w-32" />
+            ) : (
+              <p className="text-2xl font-medium">
+                {formatRupiah(financeSummary?.current_balance || "0")}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Total Pemasukan</CardTitle>
           </CardHeader>
           <CardContent>
@@ -163,21 +178,6 @@ export default function FinancePage() {
             ) : (
               <p className="text-2xl font-medium text-red-600">
                 {formatRupiah(financeSummary?.total_expense || "0")}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Saldo Saat Ini</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-8 w-32" />
-            ) : (
-              <p className="text-2xl font-medium">
-                {formatRupiah(financeSummary?.current_balance || "0")}
               </p>
             )}
           </CardContent>

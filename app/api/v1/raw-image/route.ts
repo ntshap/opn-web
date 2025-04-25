@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { headers } from 'next/headers';
+import { getAuthToken } from '@/lib/auth-utils';
 
 /**
  * Server-side API route to proxy image requests with authentication
@@ -18,14 +19,16 @@ export async function GET(request: NextRequest) {
       return new NextResponse('URL parameter is required', { status: 400 });
     }
 
-    console.log(`[Raw Image] Using URL directly: ${imageUrl}`);
+    console.log(`[Raw Image] Proxying image request for: ${imageUrl}`);
 
     // Get authorization from request headers first
     const headersList = headers();
     let authHeader = headersList.get('authorization');
 
-    // If no auth in headers, try cookies
+    // If no auth in headers, try to get it from the client-side auth utils
+    // This won't work directly in a server component, but we can try cookies
     if (!authHeader) {
+      // Try to get from cookies
       const cookieStore = cookies();
       const tokenCookie = cookieStore.get('token') || cookieStore.get('auth_token');
 
@@ -34,6 +37,9 @@ export async function GET(request: NextRequest) {
           ? tokenCookie.value
           : `Bearer ${tokenCookie.value}`;
         console.log('[Raw Image] Using token from cookies');
+      } else {
+        // If we still don't have a token, log a warning
+        console.warn('[Raw Image] No authorization token found in cookies');
       }
     } else {
       console.log('[Raw Image] Using authorization from headers');
@@ -46,14 +52,29 @@ export async function GET(request: NextRequest) {
 
     // Add authorization header if available
     if (authHeader) {
-      requestHeaders['Authorization'] = authHeader;
+      // Make sure the token has the Bearer prefix
+      const formattedAuthHeader = authHeader.startsWith('Bearer ')
+        ? authHeader
+        : `Bearer ${authHeader}`;
+
+      requestHeaders['Authorization'] = formattedAuthHeader;
+
       // Log a masked version of the token for debugging
-      const maskedToken = authHeader.length > 15
-        ? `${authHeader.substring(0, 10)}...${authHeader.substring(authHeader.length - 5)}`
+      const maskedToken = formattedAuthHeader.length > 15
+        ? `${formattedAuthHeader.substring(0, 15)}...${formattedAuthHeader.substring(formattedAuthHeader.length - 5)}`
         : '***';
       console.log(`[Raw Image] Added Authorization header: ${maskedToken}`);
     } else {
       console.warn('[Raw Image] No authorization token found');
+
+      // Return a 401 Unauthorized response with a clear error message
+      return new NextResponse(JSON.stringify({
+        error: 'Authentication required to access this image',
+        message: 'Please log in to view this content'
+      }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
     // Make the request to the backend with a direct GET request
