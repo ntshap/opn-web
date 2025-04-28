@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { newsApi } from "@/lib/api-service" // Updated path
+import { SecureImage } from "@/components/shared/SecureImage"
 
 export function PhotoTest({ newsId }: { newsId: string }) {
   const [file, setFile] = useState<File | null>(null)
@@ -38,6 +39,21 @@ export function PhotoTest({ newsId }: { newsId: string }) {
         lastModified: new Date(file.lastModified).toISOString()
       })
 
+      // Log the auth token (masked for security)
+      try {
+        const token = localStorage.getItem('token');
+        if (token) {
+          const maskedToken = token.length > 20
+            ? `${token.substring(0, 10)}...${token.substring(token.length - 10)}`
+            : '***';
+          console.log(`Auth token available: ${maskedToken}`);
+        } else {
+          console.warn('No auth token found in localStorage');
+        }
+      } catch (e) {
+        console.error('Error checking auth token:', e);
+      }
+
       // Attempt to upload the file
       const result = await newsApi.uploadNewsPhoto(newsId, file)
       console.log("Upload result:", result)
@@ -56,9 +72,18 @@ export function PhotoTest({ newsId }: { newsId: string }) {
         // The request was made and the server responded with a status code
         // that falls out of the range of 2xx
         errorMessage += ` Server responded with status ${err.response.status}: ${JSON.stringify(err.response.data)}`;
+
+        // Log detailed response information
+        console.error('Error response details:', {
+          status: err.response.status,
+          statusText: err.response.statusText,
+          data: err.response.data,
+          headers: err.response.headers
+        });
       } else if (err.request) {
         // The request was made but no response was received
         errorMessage += " No response received from server. Check your network connection.";
+        console.error('Request details (no response):', err.request);
       }
 
       setError(errorMessage)
@@ -104,11 +129,12 @@ export function PhotoTest({ newsId }: { newsId: string }) {
               <div className="mt-2">
                 <p className="text-sm mb-1">Photo URL: {response.photo_url}</p>
                 <div className="border rounded p-2">
-                  <img
+                  <SecureImage
                     src={response.photo_url}
                     alt="Uploaded"
-                    className="max-h-40 object-contain"
-                    onError={() => console.error(`Failed to load image from URL: ${response.photo_url}`)}
+                    width={300}
+                    height={200}
+                    className="mx-auto"
                   />
                 </div>
               </div>

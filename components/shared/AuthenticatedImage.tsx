@@ -46,7 +46,7 @@ export function AuthenticatedImage({
   const [error, setError] = useState(false);
   const [directUrl, setDirectUrl] = useState<string>('');
 
-  // Format the URL to use our API proxy for authentication
+  // Format the URL to use direct backend URL
   useEffect(() => {
     if (!src) return;
 
@@ -61,12 +61,9 @@ export function AuthenticatedImage({
         return;
       }
 
-      // Use our raw-image API proxy route that will add the Authorization header server-side
-      // The directUrl already contains the full backend URL, so we don't need to add it again
-      const proxyUrl = `/api/v1/raw-image?url=${encodeURIComponent(directUrl)}`;
-
-      console.log(`[AuthenticatedImage] Using raw-image API proxy URL: ${proxyUrl}`);
-      setDirectUrl(proxyUrl);
+      // Use the direct URL from the backend
+      console.log(`[AuthenticatedImage] Using direct URL: ${directUrl}`);
+      setDirectUrl(directUrl);
     } catch (e) {
       console.error(`[AuthenticatedImage] Error formatting URL: ${src}`, e);
       setError(true);
@@ -85,15 +82,17 @@ export function AuthenticatedImage({
     );
   }
 
-  // Use next/image with unoptimized to avoid the image optimization API
+  // Use a regular img tag instead of next/image
   return (
     <div className={className} style={{ width, height, position: 'relative' }}>
-      <Image
+      <img
         src={directUrl}
         alt={alt}
-        fill
-        className="object-cover"
-        unoptimized={true}
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover'
+        }}
         crossOrigin="anonymous"
         onError={() => {
           console.error(`[AuthenticatedImage] Error loading image: ${directUrl}`);

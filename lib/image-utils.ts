@@ -60,9 +60,18 @@ export function formatImageUrl(url: string | null | undefined, contextId?: strin
         cleanUrl = `/${cleanUrl}`;
       }
 
+      // Extract the path after 'uploads/'
+      let pathAfterUploads = '';
+      if (cleanUrl.includes('uploads/')) {
+        pathAfterUploads = cleanUrl.split('uploads/')[1];
+      } else {
+        pathAfterUploads = cleanUrl.startsWith('/') ? cleanUrl.substring(1) : cleanUrl;
+      }
+
       // Preserve double slashes as required by the backend
       // The backend expects URLs like https://backend-project-pemuda.onrender.com//uploads/...
-      const fullUrl = `${baseUrl}//${cleanUrl.startsWith('/') ? cleanUrl.substring(1) : cleanUrl}`;
+      // Always ensure we have double slashes after the domain
+      const fullUrl = `${baseUrl}//uploads/${pathAfterUploads}`;
 
       console.log(`[formatImageUrl] Returning direct full URL with double slash: ${fullUrl}`);
       return fullUrl;
@@ -71,6 +80,7 @@ export function formatImageUrl(url: string | null | undefined, contextId?: strin
     // For URLs that include 'uploads' but don't start with /uploads
     if (url.includes('uploads')) {
       // Handle the case where the URL might be in the format 'uploads/news/{news_id}/{filename}'
+      // or 'uploads/events/2025-04-21/2025-04/24_1745227510164.png'
       let cleanUrl = url;
 
       // Remove any leading slashes
@@ -89,6 +99,7 @@ export function formatImageUrl(url: string | null | undefined, contextId?: strin
       }
 
       // Preserve double slashes as required by the backend
+      // Always ensure we have double slashes after the domain
       const fullUrl = `${baseUrl}//${cleanUrl}`;
       console.log(`[formatImageUrl] Returning direct full URL with double slash: ${fullUrl}`);
       return fullUrl;
@@ -97,6 +108,7 @@ export function formatImageUrl(url: string | null | undefined, contextId?: strin
     // If it's a relative URL starting with /, add the base URL
     if (url.startsWith('/')) {
       // Preserve double slashes as required by the backend
+      // Always ensure we have double slashes after the domain
       const fullUrl = `${baseUrl}//${url.startsWith('/') ? url.substring(1) : url}`;
       console.log(`[formatImageUrl] Returning direct full URL with double slash: ${fullUrl}`);
       return fullUrl;
@@ -106,6 +118,7 @@ export function formatImageUrl(url: string | null | undefined, contextId?: strin
     if (!url.includes('/')) {
       // Assume it's a filename that should be in the uploads directory
       // Preserve double slashes as required by the backend
+      // Always ensure we have double slashes after the domain
       const fullUrl = `${baseUrl}//uploads/${url}`;
       console.log(`[formatImageUrl] Returning direct full URL with double slash: ${fullUrl}`);
       return fullUrl;
@@ -113,6 +126,7 @@ export function formatImageUrl(url: string | null | undefined, contextId?: strin
 
     // For any other URL, assume it's a relative path and add the base URL
     // Preserve double slashes as required by the backend
+    // Always ensure we have double slashes after the domain
     const fullUrl = `${baseUrl}//uploads/${url}`;
     console.log(`[formatImageUrl] Returning direct full URL with double slash: ${fullUrl}`);
     return fullUrl;
@@ -123,10 +137,10 @@ export function formatImageUrl(url: string | null | undefined, contextId?: strin
 }
 
 /**
- * Since we can't directly add Authorization headers to <img> tags,
- * we need to use our API proxy for authenticated image requests
+ * Since we can't directly add Authorization headers to <img> tags in HTML,
+ * we should use direct URLs for client-side components that can handle auth
  * @param url The original image URL
- * @returns A URL that can be used in an img tag with authentication
+ * @returns A properly formatted direct URL to the backend
  */
 export function getAuthenticatedImageUrl(url: string | null | undefined): string {
   if (!url) return '';
@@ -151,15 +165,20 @@ export function getAuthenticatedImageUrl(url: string | null | undefined): string
   // Verify the URL doesn't contain localhost
   if (fullUrl.includes('localhost')) {
     console.error(`[getAuthenticatedImageUrl] Error: URL contains localhost: ${fullUrl}`);
-    return '/placeholder-news.svg';
+    return '';
   }
 
-  // Use our raw-image API proxy route that will add the Authorization header server-side
-  // This is the proper way to handle authentication for images
-  const proxyUrl = `/api/v1/raw-image?url=${encodeURIComponent(fullUrl)}`;
-  console.log(`[getAuthenticatedImageUrl] Using raw-image API proxy: ${proxyUrl}`);
+  // Ensure the URL has the correct format with double slashes after domain
+  if (fullUrl.includes('backend-project-pemuda.onrender.com/') && !fullUrl.includes('backend-project-pemuda.onrender.com//')) {
+    // Fix the URL to have double slashes
+    fullUrl = fullUrl.replace('backend-project-pemuda.onrender.com/', 'backend-project-pemuda.onrender.com//');
+    console.log(`[getAuthenticatedImageUrl] Fixed URL to have double slashes: ${fullUrl}`);
+  }
 
-  return proxyUrl;
+  // Return the direct URL - the component should handle authentication
+  console.log(`[getAuthenticatedImageUrl] Using direct URL: ${fullUrl}`);
+
+  return fullUrl;
 }
 
 /**
@@ -197,30 +216,152 @@ export async function loadBackendImage(path: string): Promise<Blob | null> {
   try {
     // Format the URL using our utility function
     const url = formatImageUrl(path);
+    console.log(`[loadBackendImage] Formatted URL: ${url}`);
 
     // IMPORTANT: Never use localhost, always use the backend URL directly
     if (url.includes('localhost')) {
-      console.error(`[Image Utils] Error: URL contains localhost: ${url}`);
+      console.error(`[loadBackendImage] Error: URL contains localhost: ${url}`);
       return null;
     }
 
-    // Create an authenticated fetch function
-    const authenticatedFetch = await createAuthenticatedImageFetch();
+    // Get the auth token
+    const token = getAuthToken();
+    if (!token) {
+      console.error('[loadBackendImage] No authentication token available');
+      return null;
+    }
+
+    // Make sure token has Bearer prefix
+    const authHeader = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+
+    // Add a timestamp to prevent caching
+    const urlWithTimestamp = `${url}${url.includes('?') ? '&' : '?'}_t=${Date.now()}`;
+    console.log(`[loadBackendImage] Using URL with timestamp: ${urlWithTimestamp}`);
 
     // Make the request to the backend - explicitly use GET method
-    const response = await authenticatedFetch(url, {
+    console.log(`[loadBackendImage] Fetching with auth token: ${authHeader.substring(0, 15)}...`);
+    const response = await fetch(urlWithTimestamp, {
       method: 'GET', // Explicitly use GET method, not OPTIONS
+      headers: {
+        'Authorization': authHeader,
+        'Accept': 'image/*',
+        'Cache-Control': 'no-cache',
+      },
       cache: 'no-store',
     });
 
     if (!response.ok) {
-      console.error(`[Image Utils] Failed to load image: ${url}`, response.status);
+      console.error(`[loadBackendImage] Failed to load image: ${url}`, response.status);
       return null;
     }
 
     return await response.blob();
   } catch (error) {
-    console.error(`[Image Utils] Error loading image: ${path}`, error);
+    console.error(`[loadBackendImage] Error loading image: ${path}`, error);
+    return null;
+  }
+}
+
+/**
+ * Fetches an image from the backend with authentication and returns a blob URL
+ * @param path The image path
+ * @returns A promise that resolves to a blob URL
+ */
+export async function fetchImageAsBlob(path: string): Promise<string | null> {
+  try {
+    // Format the URL using our utility function
+    const url = formatImageUrl(path);
+    console.log(`[fetchImageAsBlob] Formatted URL: ${url}`);
+
+    // IMPORTANT: Never use localhost, always use the backend URL directly
+    if (url.includes('localhost')) {
+      console.error(`[fetchImageAsBlob] Error: URL contains localhost: ${url}`);
+      return null;
+    }
+
+    // Get the auth token
+    const token = getAuthToken();
+    if (!token) {
+      console.error('[fetchImageAsBlob] No authentication token available');
+      return null;
+    }
+
+    // Make sure token has Bearer prefix
+    const authHeader = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+
+    // Add a timestamp to prevent caching
+    const urlWithTimestamp = `${url}${url.includes('?') ? '&' : '?'}_t=${Date.now()}`;
+    console.log(`[fetchImageAsBlob] Using direct URL with timestamp: ${urlWithTimestamp}`);
+
+    // Direct fetch with proper headers
+    try {
+      console.log(`[fetchImageAsBlob] Fetching image with auth token: ${authHeader.substring(0, 15)}...`);
+      const response = await fetch(urlWithTimestamp, {
+        method: 'GET', // Explicitly use GET method, not OPTIONS
+        headers: {
+          'Authorization': authHeader,
+          'Accept': 'image/*',
+          'Cache-Control': 'no-cache',
+        },
+        cache: 'no-store',
+      });
+
+      if (!response.ok) {
+        console.error(`[fetchImageAsBlob] Error fetching image: ${response.status} ${response.statusText}`);
+        return null;
+      }
+
+      // Convert the response to a blob
+      const blob = await response.blob();
+
+      // Create a blob URL
+      const objectUrl = URL.createObjectURL(blob);
+      console.log(`[fetchImageAsBlob] Created blob URL from direct fetch: ${objectUrl}`);
+
+      return objectUrl;
+    } catch (fetchError) {
+      console.error(`[fetchImageAsBlob] Direct fetch error:`, fetchError);
+
+      // If direct fetch fails, try using the Image element approach
+      // This approach avoids OPTIONS preflight requests
+      console.log(`[fetchImageAsBlob] Trying Image element approach`);
+
+      // Create a new XMLHttpRequest to avoid CORS issues
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', urlWithTimestamp, true);
+      xhr.responseType = 'blob';
+      xhr.setRequestHeader('Authorization', authHeader);
+      xhr.setRequestHeader('Accept', 'image/*');
+
+      // Create a promise that resolves when the request completes
+      const imagePromise = new Promise<Blob>((resolve, reject) => {
+        xhr.onload = function() {
+          if (this.status >= 200 && this.status < 300) {
+            resolve(this.response);
+          } else {
+            reject(new Error(`Failed to load image: ${this.status} ${this.statusText}`));
+          }
+        };
+        xhr.onerror = () => reject(new Error('Network error'));
+        xhr.send();
+      });
+
+      try {
+        // Wait for the image to load
+        const blob = await imagePromise;
+
+        // Create a blob URL
+        const objectUrl = URL.createObjectURL(blob);
+        console.log(`[fetchImageAsBlob] Created blob URL from XHR: ${objectUrl}`);
+
+        return objectUrl;
+      } catch (xhrError) {
+        console.error(`[fetchImageAsBlob] XHR error:`, xhrError);
+        return null;
+      }
+    }
+  } catch (error) {
+    console.error(`[fetchImageAsBlob] Error loading image: ${path}`, error);
     return null;
   }
 }

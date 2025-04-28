@@ -309,44 +309,53 @@ export const MemberAttendanceForm = forwardRef<
               ))}
             </TabsList>
 
+            {/* Table with fixed header and scrollable body */}
             <div className="rounded-md border">
-              <div className="grid grid-cols-4 gap-4 p-4 font-medium border-b bg-gray-50">
-                <div>Nama</div>
-                <div>Divisi</div>
-                <div>Status</div>
-                <div>Keterangan</div>
-              </div>
-
-              {/* Use ScrollArea for better performance with large lists */}
-              <ScrollArea className="h-[300px]">
-                {filteredRecords.map((record) => (
-                  <div key={record.member_id} className="grid grid-cols-4 gap-4 p-4 border-b bg-white even:bg-gray-50">
-                    <div>{record.name}</div>
-                    <div>{record.division}</div>
-                    <div>
-                      <Select
-                        value={record.status}
-                        onValueChange={(value) => handleStatusChange(record.member_id, value)}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Hadir">Hadir</SelectItem>
-                          <SelectItem value="Tidak Hadir">Tidak Hadir</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Input
-                        placeholder="Masukkan keterangan"
-                        value={record.notes}
-                        onChange={(e) => handleNotesChange(record.member_id, e.target.value)}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </ScrollArea>
+              <table className="w-full table-fixed border-collapse">
+                <colgroup>
+                  <col className="w-1/4" />
+                  <col className="w-1/4" />
+                  <col className="w-1/4" />
+                  <col className="w-1/4" />
+                </colgroup>
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="p-4 text-left font-medium">Nama</th>
+                    <th className="p-4 text-left font-medium">Divisi</th>
+                    <th className="p-4 text-left font-medium">Status</th>
+                    <th className="p-4 text-left font-medium">Keterangan</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {filteredRecords.map((record) => (
+                    <tr key={record.member_id} className="bg-white even:bg-gray-50">
+                      <td className="p-4 align-middle">{record.name}</td>
+                      <td className="p-4 align-middle">{record.division}</td>
+                      <td className="p-4 align-middle">
+                        <Select
+                          value={record.status}
+                          onValueChange={(value) => handleStatusChange(record.member_id, value)}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Hadir">Hadir</SelectItem>
+                            <SelectItem value="Tidak Hadir">Tidak Hadir</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td className="p-4 align-middle">
+                        <Input
+                          placeholder="Masukkan keterangan"
+                          value={record.notes}
+                          onChange={(e) => handleNotesChange(record.member_id, e.target.value)}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
 
             {/* Simpan button is now handled by the parent component */}

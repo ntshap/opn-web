@@ -97,13 +97,12 @@ export function DirectBackendImage({
     );
   }
 
-  // Use the image directly with the exact URL provided, but fix double slashes
-  // Fix double slashes in URL (except after protocol)
-  const fixedUrl = url.replace(/([^:])\/\//g, '$1/');
-  console.log(`[DirectBackendImage] Using fixed URL: ${fixedUrl} (original: ${url})`);
+  // Do NOT fix double slashes in URL as the backend requires them
+  // The backend expects URLs like https://backend-project-pemuda.onrender.com//uploads/...
+  console.log(`[DirectBackendImage] Using URL: ${url}`);
 
-  // Update the url to use the fixed version
-  url = fixedUrl;
+  // Keep the original URL as is
+  // url = url;
 
   // State for the blob URL
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
@@ -148,18 +147,37 @@ export function DirectBackendImage({
           console.log(`[DirectBackendImage] Trying to fetch with fetch API: ${url}`);
 
           // Use fetch with authentication
+          console.log(`[DirectBackendImage] Fetch headers:`, {
+            'Authorization': `${authHeader.substring(0, 10)}...`,
+            'Accept': 'image/*',
+          });
+
           response = await fetch(url, {
+            method: 'GET', // Explicitly use GET method, not OPTIONS
             headers: {
               'Authorization': authHeader,
               'Accept': 'image/*',
             },
+            mode: 'cors', // Explicitly set CORS mode
+            credentials: 'same-origin' // Only include credentials for same-origin requests
           });
 
           console.log(`[DirectBackendImage] Fetch response status: ${response.status} ${response.statusText}`);
+          console.log(`[DirectBackendImage] Response headers:`, Object.fromEntries([...response.headers.entries()]));
 
           // If the response is not ok, throw an error to try the next approach
           if (!response.ok) {
-            throw new Error(`Fetch failed with status ${response.status}`);
+            // Try to get more information about the error
+            let errorText = '';
+            try {
+              // Try to parse the response as text
+              errorText = await response.text();
+              console.error(`[DirectBackendImage] Error response body:`, errorText);
+            } catch (textError) {
+              console.error(`[DirectBackendImage] Could not read error response body:`, textError);
+            }
+
+            throw new Error(`Fetch failed with status ${response.status}: ${errorText}`);
           }
 
           console.log(`[DirectBackendImage] Successfully fetched with fetch API`);
@@ -170,7 +188,13 @@ export function DirectBackendImage({
           // Second try: Use apiClient
           try {
             console.log(`[DirectBackendImage] Trying to fetch with apiClient: ${url}`);
+            console.log(`[DirectBackendImage] apiClient headers:`, {
+              'Authorization': `${authHeader.substring(0, 10)}...`,
+              'Accept': 'image/*',
+            });
+
             const apiResponse = await apiClient.get(url, {
+              method: 'GET', // Explicitly use GET method
               responseType: 'blob',
               timeout: 30000,
               headers: {
@@ -178,6 +202,9 @@ export function DirectBackendImage({
                 'Accept': 'image/*',
               }
             });
+
+            console.log(`[DirectBackendImage] apiClient response status:`, apiResponse.status);
+            console.log(`[DirectBackendImage] apiClient response headers:`, apiResponse.headers);
 
             // Create a Response object from the apiClient response
             response = new Response(apiResponse.data, {
@@ -199,11 +226,12 @@ export function DirectBackendImage({
               const proxyUrl = `/api/v1/raw-image?url=${encodeURIComponent(url)}`;
               console.log(`[DirectBackendImage] Proxy URL: ${proxyUrl}`);
 
-              response = await fetch(proxyUrl, {
-                headers: {
-                  'Authorization': authHeader,
-                }
-              });
+              // Use the raw-image API endpoint without additional headers
+              // The server-side API will handle adding the authorization header
+              response = await fetch(proxyUrl);
+
+              console.log(`[DirectBackendImage] raw-image response status: ${response.status} ${response.statusText}`);
+              console.log(`[DirectBackendImage] raw-image response headers:`, Object.fromEntries([...response.headers.entries()]));
 
               if (!response.ok) {
                 throw new Error(`Raw-image API failed with status ${response.status}`);

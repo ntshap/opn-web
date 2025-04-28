@@ -19,7 +19,7 @@ import Image from "next/image"
 import { Card, CardContent } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { formatImageUrl } from "@/lib/image-utils"
-import { AuthenticatedImage } from "@/app/components/authenticated-image"
+import { SecureImage } from "@/components/shared/SecureImage"
 
 // Form schema
 const formSchema = z.object({
@@ -267,16 +267,15 @@ export function NewsForm({ defaultValues, existingPhotos = [], newsId, onSubmit,
                   {existingPhotos.map((photo) => (
                     <div key={photo.id} className="relative group">
                       <div className="relative h-32 w-32 rounded-md overflow-hidden">
-                        {/* Use our custom AuthenticatedImage component */}
-                        <AuthenticatedImage
+                        {/* Use our new SecureImage component */}
+                        <SecureImage
                           src={photo.photo_url}
                           alt={`Photo ${photo.id}`}
-                          fill
+                          width="100%"
+                          height="100%"
                           className="object-cover"
                           fallbackSrc="/placeholder-news.svg"
-                          onLoadError={(error) => {
-                            console.error(`Error loading image in NewsForm: ${photo.photo_url}`, error);
-                          }}
+                          style={{ position: 'absolute', top: 0, left: 0 }}
                         />
                       </div>
                       {onDeletePhoto && (

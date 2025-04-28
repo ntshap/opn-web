@@ -1,0 +1,16 @@
+/* Custom styles for finance page */
+.finance-income-title {
+  color: #dc2626 !important; /* Red color */
+}
+
+.finance-income-value {
+  color: #000000 !important; /* Black color */
+}
+
+.finance-expense-title {
+  color: #16a34a !important; /* Green color */
+}
+
+.finance-expense-value {
+  color: #000000 !important; /* Black color */
+}

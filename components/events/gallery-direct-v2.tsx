@@ -7,6 +7,7 @@ import { Upload, Download, AlertCircle, ImageIcon } from "lucide-react"
 import { apiClient } from "@/lib/api-client"
 import { UploadPhotosDirect } from "./upload-photos-direct"
 import { formatImageUrl } from "@/lib/image-utils"
+import { SecureImage } from "@/components/shared/SecureImage"
 
 interface GalleryDirectV2Props {
   eventId: string | number
@@ -125,30 +126,16 @@ export function GalleryDirectV2({ eventId }: GalleryDirectV2Props) {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {photos.map((photo) => (
                 <div key={photo.id} className="relative aspect-square rounded-md overflow-hidden border bg-muted">
-                  {/* Use a div with background image for better error handling */}
-                  <div
-                    className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat"
-                    style={{
-                      backgroundImage: `url('/placeholder.svg')`,
-                    }}
-                  >
-                    <img
-                      src={photo.photo_url}
-                      alt={`Foto acara ${photo.id}`}
-                      className="absolute inset-0 w-full h-full object-cover"
-                      onLoad={(e) => {
-                        console.log(`[GalleryDirectV2] Image loaded successfully: ${photo.photo_url}`)
-                        // Update the parent div's background image on successful load
-                        e.currentTarget.parentElement!.style.backgroundImage = `url('${photo.photo_url}')`
-                      }}
-                      onError={(e) => {
-                        console.error(`[GalleryDirectV2] Error loading image: ${photo.photo_url}`)
-                        // Hide the img element on error
-                        e.currentTarget.style.display = 'none'
-                      }}
-                      loading="lazy"
-                    />
-                  </div>
+                  {/* Use SecureImage component for authenticated image loading */}
+                  <SecureImage
+                    src={photo.photo_url}
+                    alt={`Foto acara ${photo.id}`}
+                    width="100%"
+                    height="100%"
+                    className="absolute inset-0 w-full h-full object-cover"
+                    fallbackSrc="/placeholder.svg"
+                    style={{ position: 'absolute', top: 0, left: 0 }}
+                  />
                   <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1">
                     {formatDate(photo.uploaded_at)}
                   </div>

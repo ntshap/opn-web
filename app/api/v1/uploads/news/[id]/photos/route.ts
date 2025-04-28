@@ -16,6 +16,8 @@ export async function POST(
     console.log(`Processing POST request for uploading photos to news ${id}`);
 
     // Forward the request to the backend API using the correct uploads endpoint
+    // The backend expects the URL to be /uploads/news/{id}/photos (without trailing slash)
+    console.log(`[API Route] Forwarding to backend endpoint: /uploads/news/${id}/photos`);
     const response = await handleApiRoute(request, `/uploads/news/${id}/photos`, {
       timeout: 30000, // Increase timeout for uploads
       requireAuth: true

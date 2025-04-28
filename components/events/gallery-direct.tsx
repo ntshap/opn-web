@@ -4,9 +4,9 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Upload, Download, AlertCircle } from "lucide-react"
-import Image from "next/image"
 import { apiClient } from "@/lib/api-client"
 import { UploadPhotosModal } from "./upload-photos-modal"
+import { SecureImage } from "@/components/shared/SecureImage"
 
 interface GalleryDirectProps {
   eventId: string | number
@@ -104,15 +104,15 @@ export function GalleryDirect({ eventId }: GalleryDirectProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {photos.map((photo) => (
                 <div key={photo.id} className="relative aspect-square overflow-hidden rounded-md border bg-muted">
-                  {/* Use img tag instead of Image component for better error handling */}
-                  <img
+                  {/* Use SecureImage component for authenticated image loading */}
+                  <SecureImage
                     src={photo.photo_url}
                     alt={`Foto acara ${photo.id}`}
+                    width="100%"
+                    height="100%"
                     className="absolute inset-0 w-full h-full object-cover"
-                    onError={(e) => {
-                      console.error(`Error loading image: ${photo.photo_url}`)
-                      e.currentTarget.src = "/placeholder.svg"
-                    }}
+                    fallbackSrc="/placeholder.svg"
+                    style={{ position: 'absolute', top: 0, left: 0 }}
                   />
                   <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-2 text-sm">
                     {photo.caption || `Foto ${photo.id}`}

@@ -42,7 +42,6 @@ export function EventForm({ event, onSuccess }: EventFormProps) {
   const { toast } = useToast()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState("details")
-  const [attendanceRecords, setAttendanceRecords] = useState<any[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Get event mutations from custom hook
@@ -111,31 +110,7 @@ export function EventForm({ event, onSuccess }: EventFormProps) {
         description: "Acara berhasil dibuat",
       })
 
-      // If we have attendance records, save them
-      if (attendanceRecords.length > 0 && newEvent?.id) {
-        try {
-          // Format attendance records for API
-          const formattedRecords = attendanceRecords.map(record => {
-            // Validate status to ensure it's one of the expected values
-            const validStatus = record.status === "Hadir" ? "Hadir" :
-                               record.status === "Izin" ? "Izin" :
-                               record.status === "Alfa" ? "Alfa" :
-                               record.status === "Tidak Hadir" ? "Alfa" : "Hadir";
-
-            return {
-              member_id: record.member_id,
-              status: validStatus,
-              notes: record.notes
-            };
-          });
-
-          // Use the API directly instead of the hook
-          await eventApi.createUpdateAttendance(newEvent.id, formattedRecords);
-          console.log('Attendance records saved successfully for new event');
-        } catch (error) {
-          console.error('Error saving attendance records for new event:', error);
-        }
-      }
+      // Attendance records are now managed after event creation
 
       // Call the onSuccess callback if provided
       if (onSuccess) {
@@ -233,18 +208,154 @@ export function EventForm({ event, onSuccess }: EventFormProps) {
     }
   }
 
-  // Handle attendance records changes
-  const handleAttendanceChange = (records: any[]) => {
-    setAttendanceRecords(records)
+  // Attendance records are now managed in the attendance tab after event creation
+
+  // For new events, only show the event form without tabs
+  if (!event?.id) {
+    return (
+      <div>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Buat Acara Baru</CardTitle>
+                <CardDescription>
+                  Isi formulir berikut untuk membuat acara baru
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Judul Acara</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Masukkan judul acara" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Deskripsi</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Masukkan deskripsi acara"
+                          className="min-h-32"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="date"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tanggal</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="time"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Waktu</FormLabel>
+                        <FormControl>
+                          <Input type="time" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Lokasi</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Masukkan lokasi acara" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Pilih status acara" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="akan datang">Akan Datang</SelectItem>
+                          <SelectItem value="selesai">Selesai</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+              <CardFooter className="flex justify-between">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.back()}
+                >
+                  Batal
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Menyimpan...
+                    </>
+                  ) : (
+                    "Simpan"
+                  )}
+                </Button>
+              </CardFooter>
+            </Card>
+          </form>
+        </Form>
+      </div>
+    );
   }
 
+  // For existing events, show the tabs interface
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-3">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="details">Detail Acara</TabsTrigger>
-          <TabsTrigger value="attendance" disabled={!event?.id}>Kehadiran</TabsTrigger>
-          <TabsTrigger value="minutes" disabled={!event?.id}>Notulensi</TabsTrigger>
+          <TabsTrigger value="attendance">Kehadiran</TabsTrigger>
+          <TabsTrigger value="minutes">Notulensi</TabsTrigger>
         </TabsList>
 
         <TabsContent value="details" className="space-y-4 mt-4">
@@ -252,11 +363,9 @@ export function EventForm({ event, onSuccess }: EventFormProps) {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>{event ? "Edit Acara" : "Buat Acara Baru"}</CardTitle>
+                  <CardTitle>Edit Acara</CardTitle>
                   <CardDescription>
-                    {event
-                      ? "Edit informasi acara yang sudah ada"
-                      : "Isi formulir berikut untuk membuat acara baru"}
+                    Edit informasi acara yang sudah ada
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -380,69 +489,40 @@ export function EventForm({ event, onSuccess }: EventFormProps) {
               </Card>
             </form>
           </Form>
-
-          {!event?.id && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Daftar Kehadiran</CardTitle>
-                <CardDescription>
-                  Tambahkan daftar kehadiran untuk acara ini (opsional)
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <MemberAttendanceForm
-                  eventId={0} // Temporary ID for new events
-                  onAttendanceChange={handleAttendanceChange}
-                />
-              </CardContent>
-            </Card>
-          )}
         </TabsContent>
 
         <TabsContent value="attendance" className="space-y-4 mt-4">
-          {event?.id ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Daftar Kehadiran</CardTitle>
-                <CardDescription>
-                  Kelola daftar kehadiran untuk acara ini
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <MemberAttendanceForm eventId={event.id} />
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="text-center py-8">
-              <p>Silakan simpan acara terlebih dahulu untuk mengelola kehadiran</p>
-            </div>
-          )}
+          <Card>
+            <CardHeader>
+              <CardTitle>Daftar Kehadiran</CardTitle>
+              <CardDescription>
+                Kelola daftar kehadiran untuk acara ini
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <MemberAttendanceForm eventId={event.id} />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="minutes" className="space-y-4 mt-4">
-          {event?.id ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Notulensi Rapat</CardTitle>
-                <CardDescription>
-                  Kelola notulensi rapat untuk acara ini
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <MeetingMinutesForm
-                  eventId={event.id}
-                  onSubmit={(data) => {
-                    console.log('Meeting minutes submitted:', data);
-                    // Handle the submission here
-                  }}
-                />
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="text-center py-8">
-              <p>Silakan simpan acara terlebih dahulu untuk mengelola notulensi</p>
-            </div>
-          )}
+          <Card>
+            <CardHeader>
+              <CardTitle>Notulensi Rapat</CardTitle>
+              <CardDescription>
+                Kelola notulensi rapat untuk acara ini
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <MeetingMinutesForm
+                eventId={event.id}
+                onSubmit={(data) => {
+                  console.log('Meeting minutes submitted:', data);
+                  // Handle the submission here
+                }}
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

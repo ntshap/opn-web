@@ -14,6 +14,7 @@ import { formatRupiah } from "@/lib/utils"
 import { format } from "date-fns"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import "./finance.css"
 
 // Local interface for displaying transactions in the UI
 interface Transaction extends FinanceTransaction {
@@ -155,13 +156,13 @@ export default function FinancePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Total Pemasukan</CardTitle>
+            <CardTitle className="finance-income-title">Total Pemasukan</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <Skeleton className="h-8 w-32" />
             ) : (
-              <p className="text-2xl font-medium text-green-600">
+              <p className="text-2xl font-medium finance-income-value">
                 {formatRupiah(financeSummary?.total_income || "0")}
               </p>
             )}
@@ -170,13 +171,13 @@ export default function FinancePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Total Pengeluaran</CardTitle>
+            <CardTitle className="finance-expense-title">Total Pengeluaran</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <Skeleton className="h-8 w-32" />
             ) : (
-              <p className="text-2xl font-medium text-red-600">
+              <p className="text-2xl font-medium finance-expense-value">
                 {formatRupiah(financeSummary?.total_expense || "0")}
               </p>
             )}
@@ -235,7 +236,7 @@ export default function FinancePage() {
                       </button>
                     </TableCell>
                     <TableCell className="text-right font-medium">
-                      <span className={transaction.category === "Pemasukan" ? "text-green-600" : "text-red-600"}>
+                      <span className="text-black">
                         {formatRupiah(Number(transaction.amount))}
                       </span>
                     </TableCell>

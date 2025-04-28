@@ -302,7 +302,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto bg-gray-50 p-4 md:p-6">
-          {children}
+          <div className="max-w-full">
+            {children}
+          </div>
         </main>
 
         {/* Status indicators */}

@@ -85,6 +85,10 @@ export const setAuthTokens = (token: string, refreshToken?: string): void => {
     document.cookie = `auth_token=${token};${cookieOptions}`
     document.cookie = `is_logged_in=true;${cookieOptions}`
 
+    // Sync the token to a cookie for server components
+    const formattedToken = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+    syncTokenToCookie(formattedToken);
+
     if (refreshToken) {
       document.cookie = `refreshToken=${refreshToken};${cookieOptions}`
     }
@@ -110,6 +114,7 @@ export const removeAuthTokens = (): void => {
   document.cookie = "auth_token=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT"
   document.cookie = "refreshToken=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT"
   document.cookie = "is_logged_in=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT"
+  document.cookie = "auth_token_for_server=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT"
 
   console.log('Auth tokens and login flag removed successfully')
 }
@@ -135,9 +140,13 @@ export const getAuthToken = (): string | null => {
     if (!authToken.startsWith('Bearer ')) {
       const tokenWithPrefix = `Bearer ${authToken}`;
       console.log('[Auth] Added Bearer prefix to auth_token');
+      // Sync the token to a cookie for server components
+      syncTokenToCookie(tokenWithPrefix);
       return tokenWithPrefix;
     }
     console.log('[Auth] auth_token already has Bearer prefix');
+    // Sync the token to a cookie for server components
+    syncTokenToCookie(authToken);
     return authToken;
   }
 
@@ -153,9 +162,13 @@ export const getAuthToken = (): string | null => {
     if (!token.startsWith('Bearer ')) {
       const tokenWithPrefix = `Bearer ${token}`;
       console.log('[Auth] Added Bearer prefix to token');
+      // Sync the token to a cookie for server components
+      syncTokenToCookie(tokenWithPrefix);
       return tokenWithPrefix;
     }
     console.log('[Auth] token already has Bearer prefix');
+    // Sync the token to a cookie for server components
+    syncTokenToCookie(token);
     return token;
   }
 
@@ -171,9 +184,13 @@ export const getAuthToken = (): string | null => {
     if (!cookieAuthToken.startsWith('Bearer ')) {
       const tokenWithPrefix = `Bearer ${cookieAuthToken}`;
       console.log('[Auth] Added Bearer prefix to cookie auth_token');
+      // Sync the token to a cookie for server components
+      syncTokenToCookie(tokenWithPrefix);
       return tokenWithPrefix;
     }
     console.log('[Auth] cookie auth_token already has Bearer prefix');
+    // Sync the token to a cookie for server components
+    syncTokenToCookie(cookieAuthToken);
     return cookieAuthToken;
   }
 
@@ -188,9 +205,13 @@ export const getAuthToken = (): string | null => {
     if (!cookieToken.startsWith('Bearer ')) {
       const tokenWithPrefix = `Bearer ${cookieToken}`;
       console.log('[Auth] Added Bearer prefix to cookie token');
+      // Sync the token to a cookie for server components
+      syncTokenToCookie(tokenWithPrefix);
       return tokenWithPrefix;
     }
     console.log('[Auth] cookie token already has Bearer prefix');
+    // Sync the token to a cookie for server components
+    syncTokenToCookie(cookieToken);
     return cookieToken;
   }
 
@@ -208,4 +229,22 @@ export const getRefreshToken = (): string | null => {
 
   // Fallback to cookies
   return document.cookie.replace(/(?:(?:^|.*;\s*)refreshToken\s*\=\s*([^;]*).*$)|^.*$/, "$1") || null
+}
+
+/**
+ * Syncs the authentication token to a cookie for server components
+ * @param token The authentication token
+ */
+export function syncTokenToCookie(token: string): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    // Set a cookie with the token that server components can access
+    document.cookie = `auth_token_for_server=${token}; path=/; max-age=3600; SameSite=Strict`;
+    console.log('[Auth Utils] Synced token to cookie for server components');
+  } catch (error) {
+    console.error('[Auth Utils] Error syncing token to cookie:', error);
+  }
 }

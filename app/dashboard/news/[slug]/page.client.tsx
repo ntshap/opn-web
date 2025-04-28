@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { ArrowLeft, Calendar, Edit, Trash, User } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { formatImageUrl } from "@/lib/image-utils"
-import { AuthenticatedImage } from "@/app/components/authenticated-image"
+import { SecureImage } from "@/components/shared/SecureImage"
 import { NewsForm } from "../components/news-form"
 import { PhotoTest } from "../components/photo-test"
 import { format } from "date-fns"
@@ -267,16 +267,15 @@ export default function NewsDetailPageClient({ slug }: { slug: string }) {
               console.log('Photo URL:', newsItem.photos[0].photo_url)
             }
 
-            {/* Use our custom AuthenticatedImage component */}
-            <AuthenticatedImage
-              src={newsItem.photos && newsItem.photos.length > 0 ? newsItem.photos[0].photo_url : null}
+            {/* Use our new SecureImage component */}
+            <SecureImage
+              src={newsItem.photos && newsItem.photos.length > 0 ? newsItem.photos[0].photo_url : ''}
               alt={newsItem.title}
-              fill
+              width="100%"
+              height="100%"
               className="object-cover"
               fallbackSrc="/placeholder-news.svg"
-              onLoadError={(error) => {
-                console.error(`Error loading image in NewsDetail: ${newsItem.photos?.[0]?.photo_url}`, error);
-              }}
+              style={{ position: 'absolute', top: 0, left: 0 }}
             />
           </div>
 

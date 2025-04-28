@@ -19,6 +19,7 @@ import { UploadPhotosDirect } from "@/components/events/upload-photos-direct"
 import { useToast } from "@/components/ui/use-toast"
 import { eventApi, type EventPhoto } from "@/lib/api-service" // Updated path, added EventPhoto import
 import { TipTapEditor, TipTapContent } from "@/components/ui/tiptap-editor"
+import { SecureImage } from "@/components/shared/SecureImage"
 
 interface EventDetailModalProps {
   show: boolean
@@ -477,10 +478,14 @@ export function EventDetailModal({ show, onClose, event, onUpdate }: EventDetail
                   <X className="h-4 w-4" />
                 </Button>
                 <div className="flex h-full items-center justify-center">
-                  <img
-                    src={selectedPhoto ? formatImageUrl(selectedPhoto) : "/placeholder.svg"}
+                  <SecureImage
+                    src={selectedPhoto || ''}
                     alt="Event photo"
+                    width="100%"
+                    height="100%"
                     className="max-h-full max-w-full object-contain"
+                    fallbackSrc="/placeholder.svg"
+                    style={{ maxHeight: '100%', maxWidth: '100%' }}
                   />
                 </div>
               </div>
@@ -531,15 +536,14 @@ export function EventDetailModal({ show, onClose, event, onUpdate }: EventDetail
                               className="group relative aspect-video cursor-pointer overflow-hidden rounded-md border bg-slate-50"
                               onClick={() => setSelectedPhoto(photoUrl || null)}
                             >
-                              <img
-                                src={formattedUrl}
+                              <SecureImage
+                                src={photoUrl || ''}
                                 alt={photo.caption || `Foto acara ${event.title}`}
+                                width="100%"
+                                height="100%"
                                 className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                onLoad={() => console.log("[EventDetailModal] Image loaded successfully:", formattedUrl)}
-                                onError={(e) => {
-                                  console.error("[EventDetailModal] Error loading image:", formattedUrl);
-                                  e.currentTarget.src = "/placeholder.svg";
-                                }}
+                                fallbackSrc="/placeholder.svg"
+                                style={{ width: '100%', height: '100%' }}
                               />
                               <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/60 to-transparent p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                                 <p className="text-sm font-medium text-white">{photo.caption || `Foto acara ${event.title}`}</p>

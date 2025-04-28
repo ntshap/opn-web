@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Calendar, MapPin, Clock, ImageIcon, Trash2, Edit2, Eye, Upload } from "lucide-react"
 import type { Event } from "@/lib/api-service" // Updated path
 import { format, parseISO, isValid } from "date-fns"
+import { SecureImage } from "@/components/shared/SecureImage"
 
 interface EventCardProps {
   event: Event
@@ -48,12 +49,17 @@ function EventCardComponent({ event, onView, onEdit, onDelete, onUpload }: Event
     <Card className="overflow-hidden transition-all duration-300 hover:shadow-md">
       <div className="relative">
         {coverPhoto ? (
-          <img
-            src={coverPhoto || "/placeholder.svg"}
-            alt={event.title}
-            className="w-full h-48 object-cover"
-            loading="lazy"
-          />
+          <div className="w-full h-48">
+            <SecureImage
+              src={coverPhoto}
+              alt={event.title}
+              width="100%"
+              height="100%"
+              className="object-cover"
+              fallbackSrc="/placeholder.svg"
+              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+            />
+          </div>
         ) : (
           <div className="w-full h-48 bg-gray-100 flex items-center justify-center">
             <ImageIcon className="w-8 h-8 text-gray-400" />

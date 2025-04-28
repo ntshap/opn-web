@@ -919,18 +919,28 @@ export const newsApi = {
       formData.append('files', file) // Use 'files' as the field name to match backend API
 
       // Use the correct endpoint URL format for uploads
+      // Make a direct request to the backend API instead of going through our Next.js API route
+      // to avoid the duplicate /api/v1 path segment
       const endpoint = `/uploads/news/${id}/photos`
 
       console.log(`Using endpoint: ${endpoint}`)
 
       // Make the request with proper headers
       // Note: apiClient will automatically add the Authorization header from getAuthToken()
-      const response = await apiClient.post<any>(endpoint, formData, {
+      // For uploads, we need to use the full URL to avoid the /api/v1 prefix that's added by apiClient
+      const backendUrl = API_CONFIG.BACKEND_URL;
+      const fullUrl = `${backendUrl}/api/v1${endpoint}`;
+
+      console.log(`Using full URL for upload: ${fullUrl}`);
+
+      const response = await axios.post<any>(fullUrl, formData, {
         headers: {
           // Let the browser set the correct Content-Type with boundary
           'Content-Type': 'multipart/form-data',
           // Add additional headers for debugging
-          'X-Request-ID': `upload-${id}-${Date.now()}`
+          'X-Request-ID': `upload-${id}-${Date.now()}`,
+          // Add authorization header manually since we're not using apiClient
+          'Authorization': authToken
         },
         // Increase timeout for uploads
         timeout: 60000
@@ -943,18 +953,25 @@ export const newsApi = {
         // Extract the first uploaded file URL
         const photoUrl = response.data.uploaded_files[0] || '';
 
-        // Ensure the photo URL is properly formatted
-        const formattedPhotoUrl = photoUrl.startsWith('http')
-          ? photoUrl
-          : `${API_CONFIG.BACKEND_URL}${photoUrl.startsWith('/') ? photoUrl : `/${photoUrl}`}`;
+        // Ensure the photo URL is properly formatted with double slashes
+        let formattedPhotoUrl;
+        if (photoUrl.startsWith('http')) {
+          formattedPhotoUrl = photoUrl;
+        } else {
+          // Remove any leading slash from the photo URL
+          const cleanPhotoUrl = photoUrl.startsWith('/') ? photoUrl.substring(1) : photoUrl;
+          // Ensure we have double slashes after the domain and correct path structure
+          formattedPhotoUrl = `${API_CONFIG.BACKEND_URL}//uploads/${cleanPhotoUrl.includes('uploads/') ? cleanPhotoUrl.split('uploads/')[1] : cleanPhotoUrl}`;
+        }
 
         console.log(`Formatted photo URL: ${formattedPhotoUrl}`)
 
         // Return in the expected format
         return {
           id: 0, // ID will be assigned by the backend
+          news_id: Number(id),
           photo_url: formattedPhotoUrl,
-          uploaded_at: new Date().toISOString()
+          created_at: new Date().toISOString()
         }
       }
 
@@ -962,13 +979,20 @@ export const newsApi = {
       if (response.data && response.data.photo_url) {
         const photoUrl = response.data.photo_url;
 
-        // Ensure the photo URL is properly formatted
-        const formattedPhotoUrl = photoUrl.startsWith('http')
-          ? photoUrl
-          : `${API_CONFIG.BACKEND_URL}${photoUrl.startsWith('/') ? photoUrl : `/${photoUrl}`}`;
+        // Ensure the photo URL is properly formatted with double slashes
+        let formattedPhotoUrl;
+        if (photoUrl.startsWith('http')) {
+          formattedPhotoUrl = photoUrl;
+        } else {
+          // Remove any leading slash from the photo URL
+          const cleanPhotoUrl = photoUrl.startsWith('/') ? photoUrl.substring(1) : photoUrl;
+          // Ensure we have double slashes after the domain and correct path structure
+          formattedPhotoUrl = `${API_CONFIG.BACKEND_URL}//uploads/${cleanPhotoUrl.includes('uploads/') ? cleanPhotoUrl.split('uploads/')[1] : cleanPhotoUrl}`;
+        }
 
         return {
           ...response.data,
+          news_id: Number(id),
           photo_url: formattedPhotoUrl
         } as NewsPhoto;
       }

@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Calendar, User, Trash2, Edit } from "lucide-react"
-import { AuthenticatedImage } from "@/app/components/authenticated-image"
+import { SecureImage } from "@/components/shared/SecureImage"
 import { formatImageUrl } from "@/lib/image-utils"
 import { useState } from "react"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
@@ -49,18 +49,15 @@ export function NewsCard({
     <Card className="overflow-hidden flex flex-col h-full">
       <div className="relative h-48 w-full">
         <div className="relative w-full h-full">
-          {/* Use our custom AuthenticatedImage component */}
-          <AuthenticatedImage
-            src={photoUrl}
+          {/* Use our new SecureImage component */}
+          <SecureImage
+            src={photoUrl || ''}
             alt={title}
-            fill
+            width="100%"
+            height="100%"
             className="object-cover"
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             fallbackSrc="/placeholder-news.svg"
-            onLoadError={(error) => {
-              console.error(`Error loading image in NewsCard: ${photoUrl}`, error);
-              setImageError(true);
-            }}
+            style={{ position: 'absolute', top: 0, left: 0 }}
           />
         </div>
       </div>

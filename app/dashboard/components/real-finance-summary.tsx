@@ -108,15 +108,15 @@ export function RealFinanceSummary() {
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="border rounded-lg p-4">
-            <h3 className="text-sm font-medium text-gray-500 mb-2">Total Pemasukan</h3>
-            <p className={`text-xl font-medium text-green-500`}>
+            <h3 className="text-sm font-medium text-red-600 mb-2">Total Pemasukan</h3>
+            <p className={`text-xl font-medium text-red-600`}>
               {isLoading ? "Loading..." : summary ? formatRupiah(summary.total_income) : "Rp0"}
             </p>
           </div>
 
           <div className="border rounded-lg p-4">
-            <h3 className="text-sm font-medium text-gray-500 mb-2">Total Pengeluaran</h3>
-            <p className={`text-xl font-medium text-red-500`}>
+            <h3 className="text-sm font-medium text-green-600 mb-2">Total Pengeluaran</h3>
+            <p className={`text-xl font-medium text-green-600`}>
               {isLoading ? "Loading..." : summary ? formatRupiah(summary.total_expense) : "Rp0"}
             </p>
           </div>
