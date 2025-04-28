@@ -39,24 +39,14 @@ export function DirectImage({
     );
   }
 
-  // If there was an error loading the image, show the fallback
+  // If there was an error loading the image, show an error message
   if (error) {
     return (
       <div
         className={`flex items-center justify-center text-muted-foreground text-xs bg-secondary ${className}`}
         style={{ width, height }}
       >
-        {fallbackSrc && (
-          <img
-            src={fallbackSrc}
-            alt={`Fallback for ${alt}`}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-            }}
-          />
-        )}
+        <span>{alt}</span>
       </div>
     );
   }
@@ -65,25 +55,11 @@ export function DirectImage({
   console.log(`[DirectImage] Using direct URL: ${url}`);
   return (
     <div className={className} style={{ width, height, position: 'relative', overflow: 'hidden' }}>
-      {/* Add a fallback image that will show if the main image fails to load */}
-      {fallbackSrc && error && (
-        <img
-          src={fallbackSrc}
-          alt={`Fallback for ${alt}`}
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-          }}
-        />
-      )}
+      {/* No fallback image */}
 
-      {/* Use the direct-fetch API endpoint */}
+      {/* Use the improved image-proxy API endpoint */}
       <img
-        src={`/api/v1/direct-fetch?url=${encodeURIComponent(url)}`}
+        src={`/api/v1/image-proxy?url=${encodeURIComponent(url)}&token=${encodeURIComponent(getAuthToken() || '')}`}
         alt={alt}
         style={{
           width: '100%',
@@ -97,7 +73,7 @@ export function DirectImage({
         onError={(e) => {
           console.error(`[DirectImage] Error loading image: ${url}`);
           console.error(`[DirectImage] Error details:`, e);
-          console.error(`[DirectImage] API URL: /api/v1/direct-fetch?url=${encodeURIComponent(url)}`);
+          console.error(`[DirectImage] API URL: /api/v1/image-proxy?url=${encodeURIComponent(url)}`);
           setError(true);
         }}
       />

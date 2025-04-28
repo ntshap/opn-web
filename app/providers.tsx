@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_CONFIG } from '@/lib/config';
 import { defaultRetryFunction, handleQueryError } from '@/lib/query-utils';
+import { LucideProvider } from '@/lib/lucide-config';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -53,8 +54,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light" suppressHydrationWarning>
-        {children}
-        {mounted && <Toaster />}
+        <LucideProvider>
+          {children}
+          {mounted && <Toaster />}
+        </LucideProvider>
       </ThemeProvider>
       {mounted && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>

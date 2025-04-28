@@ -20,6 +20,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id" className="light" suppressHydrationWarning>
+      <head>
+        {/* Removed redirect blocker to allow login to work */}
+      </head>
       <body>
         <Providers>
           {children}

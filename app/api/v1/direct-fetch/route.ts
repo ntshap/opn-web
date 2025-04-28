@@ -59,35 +59,57 @@ export async function GET(request: NextRequest) {
       console.warn('[Direct Fetch] No authorization token found');
     }
 
-    // Make the request to the backend
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: requestHeaders,
-      cache: 'no-store'
-    });
+    // Make the request to the backend with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-    // Check if the response is successful
-    if (!response.ok) {
-      console.error(`[Direct Fetch] Backend returned error: ${response.status}`);
-      return new NextResponse(`Backend error: ${response.status}`, { status: response.status });
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: requestHeaders,
+        cache: 'no-store',
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      // Check if the response is successful
+      if (!response.ok) {
+        console.error(`[Direct Fetch] Backend returned error: ${response.status} for URL: ${url}`);
+        // Return the actual error from the backend
+        return new NextResponse(`Backend error: ${response.status}`, {
+          status: response.status
+        });
+      }
+
+      // Get the response body as an array buffer
+      const buffer = await response.arrayBuffer();
+
+      // Get the content type from the response
+      const contentType = response.headers.get('content-type') || 'application/octet-stream';
+
+      // Return the response with the correct content type
+      return new NextResponse(buffer, {
+        status: 200,
+        headers: {
+          'Content-Type': contentType,
+          'Cache-Control': 'public, max-age=3600',
+        },
+      });
+    } catch (fetchError) {
+      console.error(`[Direct Fetch] Error fetching image: ${fetchError}`);
+      clearTimeout(timeoutId);
+
+      // Return the actual error
+      return new NextResponse(`Error fetching image: ${fetchError.message}`, {
+        status: 500
+      });
     }
-
-    // Get the response body as an array buffer
-    const buffer = await response.arrayBuffer();
-
-    // Get the content type from the response
-    const contentType = response.headers.get('content-type') || 'application/octet-stream';
-
-    // Return the response with the correct content type
-    return new NextResponse(buffer, {
-      status: 200,
-      headers: {
-        'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=3600',
-      },
-    });
   } catch (error) {
     console.error('[Direct Fetch] Error:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    // Return the actual error
+    return new NextResponse(`Internal Server Error: ${error.message}`, {
+      status: 500
+    });
   }
 }

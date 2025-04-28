@@ -8,11 +8,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { LockKeyhole, User } from "lucide-react"
+import { LockKeyhole, User } from "@/components/ui/icons"
 import { authApi } from "@/lib/api-auth"
 import { NetworkStatus } from "@/components/ui/network-status"
 // import { forceSetAuth, clearAllAuth } from "@/lib/force-auth"
-import { SafeIcon } from "@/components/ui/safe-icon"
+
 import { API_CONFIG } from '@/lib/config'
 
 export default function LoginPage() {
@@ -23,14 +23,16 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const redirectingRef = useRef(false)
 
-  // Check if already authenticated and handle URL parameters
+  // Simple check for existing login - no automatic redirects
   useEffect(() => {
+    console.log('Login page loaded - checking for logout parameter');
+
     // Check if this is a logout redirect (has timestamp parameter)
     const params = new URLSearchParams(window.location.search);
     const isLogoutRedirect = params.has('t');
 
     if (isLogoutRedirect) {
-      console.log('Login page loaded after logout, not checking for existing tokens');
+      console.log('Login page loaded after logout, clearing all tokens');
       // Clear any remaining tokens to be safe
       localStorage.clear();
       sessionStorage.clear();
@@ -39,39 +41,7 @@ export default function LoginPage() {
       document.cookie.split(";").forEach(function(c) {
         document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
       });
-      return;
     }
-
-    // Add a small delay to prevent immediate checks
-    const checkAuthTimer = setTimeout(() => {
-      // Check if we already have a token and is_logged_in flag
-      const token = localStorage.getItem('token');
-      const authToken = localStorage.getItem('auth_token');
-      const isLoggedIn = localStorage.getItem('is_logged_in') === 'true';
-
-      console.log('Auth check on login page:', {
-        token: token ? 'present' : 'missing',
-        authToken: authToken ? 'present' : 'missing',
-        isLoggedIn: isLoggedIn ? 'true' : 'false'
-      });
-
-      // If we have a token but no is_logged_in flag, set it now
-      if ((token || authToken) && !isLoggedIn) {
-        console.log('Token found but no is_logged_in flag, setting it now');
-        localStorage.setItem('is_logged_in', 'true');
-      }
-
-      // User must have both a token and is_logged_in flag to be considered authenticated
-      if ((token || authToken) && isLoggedIn) {
-        console.log('Already authenticated, redirecting to dashboard');
-        // Use window.location.href for a full page refresh to ensure tokens are properly loaded
-        window.location.href = '/dashboard';
-      } else {
-        console.log('Not authenticated, staying on login page');
-      }
-    }, 500);
-
-    return () => clearTimeout(checkAuthTimer);
 
     // Check for error parameter in URL
     if (typeof window !== 'undefined') {

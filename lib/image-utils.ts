@@ -32,12 +32,6 @@ export function formatImageUrl(url: string | null | undefined, contextId?: strin
       return url;
     }
 
-    // Special case for the specific URL pattern that's causing issues
-    if (url.includes('/uploads/news/2025-04-03/2025-04/1743634833908_0.png')) {
-      console.log('[formatImageUrl] Detected problematic URL pattern, using placeholder');
-      return '/placeholder-news.svg';
-    }
-
     // IMPORTANT: Never use localhost, always use the backend URL directly
     // Get the backend URL from config
     const backendUrl = API_CONFIG.BACKEND_URL;
@@ -57,7 +51,7 @@ export function formatImageUrl(url: string | null | undefined, contextId?: strin
     const baseUrl = backendBaseUrl.replace(/\/api\/v1$/, '');
     console.log(`[formatImageUrl] Base URL: ${baseUrl}`);
 
-    // For URLs from the backend API that start with /uploads
+    // For URLs from the backend API that start with /uploads or contain /uploads/
     if (url.startsWith('/uploads') || url.includes('/uploads/')) {
       let cleanUrl = url;
 
@@ -71,14 +65,6 @@ export function formatImageUrl(url: string | null | undefined, contextId?: strin
       const fullUrl = `${baseUrl}//${cleanUrl.startsWith('/') ? cleanUrl.substring(1) : cleanUrl}`;
 
       console.log(`[formatImageUrl] Returning direct full URL with double slash: ${fullUrl}`);
-
-      // Log the URL components for debugging
-      console.log(`[formatImageUrl] URL components:`, {
-        baseUrl,
-        cleanUrl,
-        fullUrl
-      });
-
       return fullUrl;
     }
 
@@ -221,9 +207,9 @@ export async function loadBackendImage(path: string): Promise<Blob | null> {
     // Create an authenticated fetch function
     const authenticatedFetch = await createAuthenticatedImageFetch();
 
-    // Make the request to the backend
+    // Make the request to the backend - explicitly use GET method
     const response = await authenticatedFetch(url, {
-      method: 'GET',
+      method: 'GET', // Explicitly use GET method, not OPTIONS
       cache: 'no-store',
     });
 

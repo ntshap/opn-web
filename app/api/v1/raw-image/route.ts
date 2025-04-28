@@ -77,35 +77,58 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Make the request to the backend with a direct GET request
-    const response = await fetch(imageUrl, {
-      method: 'GET',
-      headers: requestHeaders,
-      cache: 'no-store'
-    });
+    // Make the request to the backend with a direct GET request (not OPTIONS)
+    // Add timeout to prevent hanging requests
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-    // Check if the response is successful
-    if (!response.ok) {
-      console.error(`[Raw Image] Backend returned error: ${response.status}`);
-      return new NextResponse(`Backend error: ${response.status}`, { status: response.status });
+    try {
+      const response = await fetch(imageUrl, {
+        method: 'GET', // Explicitly use GET method, not OPTIONS
+        headers: requestHeaders,
+        cache: 'no-store',
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      // Check if the response is successful
+      if (!response.ok) {
+        console.error(`[Raw Image] Backend returned error: ${response.status} for URL: ${imageUrl}`);
+        // Return the actual error from the backend
+        return new NextResponse(`Backend error: ${response.status}`, {
+          status: response.status
+        });
+      }
+
+      // Get the response body as an array buffer
+      const buffer = await response.arrayBuffer();
+
+      // Get the content type from the response
+      const contentType = response.headers.get('content-type') || 'application/octet-stream';
+
+      // Return the response with the correct content type
+      return new NextResponse(buffer, {
+        status: 200,
+        headers: {
+          'Content-Type': contentType,
+          'Cache-Control': 'public, max-age=3600',
+        },
+      });
+    } catch (fetchError) {
+      console.error(`[Raw Image] Error fetching image: ${fetchError}`);
+      clearTimeout(timeoutId);
+
+      // Return the actual error
+      return new NextResponse(`Error fetching image: ${fetchError.message}`, {
+        status: 500
+      });
     }
-
-    // Get the response body as an array buffer
-    const buffer = await response.arrayBuffer();
-
-    // Get the content type from the response
-    const contentType = response.headers.get('content-type') || 'application/octet-stream';
-
-    // Return the response with the correct content type
-    return new NextResponse(buffer, {
-      status: 200,
-      headers: {
-        'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=3600',
-      },
-    });
   } catch (error) {
     console.error('[Raw Image] Error:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    // Return the actual error
+    return new NextResponse(`Internal Server Error: ${error.message}`, {
+      status: 500
+    });
   }
 }

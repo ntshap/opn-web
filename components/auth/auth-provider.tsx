@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const lastPathRef = useRef<string | null>(null)
   const redirectCountRef = useRef(0)
 
-  // Check authentication status on mount and when pathname changes
+  // Simple authentication check - no redirect loops
   useEffect(() => {
     // Skip auth check for login page to prevent loops
     if (pathname === '/login') {
@@ -50,14 +50,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log(`Auth check for path ${pathname}: ${authenticated ? 'Authenticated' : 'Not authenticated'}`);
         setIsLoggedIn(authenticated)
 
-        // COMPLETELY DISABLED ALL AUTOMATIC REDIRECTS
-        // Just update the isLoggedIn state without redirecting
-        console.log('Auth provider: Automatic redirects disabled');
-
-        // Reset redirect count
-        redirectCountRef.current = 0;
+        // No automatic redirects - just update state
       } catch (error) {
         console.error('Error in auth check:', error);
+        // Set as authenticated to prevent being stuck
+        setIsLoggedIn(true);
       }
     }
 
@@ -66,7 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const timer = setTimeout(checkAuthentication, 500);
       return () => clearTimeout(timer);
     }
-  }, [pathname, router, toast])
+  }, [pathname])
 
   // Logout function
   const logout = async (): Promise<void> => {
