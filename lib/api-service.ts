@@ -916,35 +916,26 @@ export const newsApi = {
 
       // Create FormData object
       const formData = new FormData()
-      formData.append('files', file) // Use 'files' as the field name to match backend API
+
+      // Use 'files' as the field name to match backend API
+      // The backend expects a field named 'files' (plural)
+      formData.append('files', file)
 
       // Use the correct endpoint URL format for uploads
-      // Make a direct request to the backend API instead of going through our Next.js API route
-      // to avoid the duplicate /api/v1 path segment
       const endpoint = `/uploads/news/${id}/photos`
-
       console.log(`Using endpoint: ${endpoint}`)
 
-      // Make the request with proper headers
-      // Note: apiClient will automatically add the Authorization header from getAuthToken()
-      // For uploads, we need to use the full URL to avoid the /api/v1 prefix that's added by apiClient
-      const backendUrl = API_CONFIG.BACKEND_URL;
-      const fullUrl = `${backendUrl}/api/v1${endpoint}`;
-
-      console.log(`Using full URL for upload: ${fullUrl}`);
-
-      const response = await axios.post<any>(fullUrl, formData, {
-        headers: {
-          // Let the browser set the correct Content-Type with boundary
-          'Content-Type': 'multipart/form-data',
-          // Add additional headers for debugging
-          'X-Request-ID': `upload-${id}-${Date.now()}`,
-          // Add authorization header manually since we're not using apiClient
-          'Authorization': authToken
-        },
-        // Increase timeout for uploads
-        timeout: 60000
-      });
+      // Use apiClient directly instead of axios to ensure consistent headers and error handling
+      const response = await apiClient.post<any>(
+        endpoint,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          timeout: 60000 // Increase timeout for uploads
+        }
+      );
 
       console.log(`Upload response:`, response.data)
 

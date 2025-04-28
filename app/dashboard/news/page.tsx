@@ -15,6 +15,7 @@ import { useDebounce } from "@/hooks/use-debounce"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { NewsForm } from "./components/news-form"
 import { useToast } from "@/components/ui/use-toast"
+import { apiClient } from "@/lib/api-client"
 
 export default function NewsPage() {
   const [activeTab, setActiveTab] = useState("all")
@@ -75,32 +76,61 @@ export default function NewsPage() {
 
   // Handle create news
   const handleCreateNews = async (data: any, photos?: File[]) => {
-    createNews.mutate({
-      title: data.title,
-      description: data.description,
-      date: data.date.toISOString(),
-      is_published: data.is_published
-    }, {
-      onSuccess: async (newNews) => {
-        // Upload photos if provided
-        if (photos && photos.length > 0 && newNews.id) {
-          // Upload each photo
-          for (const photo of photos) {
+    // If there are photos, include the first one directly in the FormData for the news creation
+    if (photos && photos.length > 0) {
+      const formData = new FormData();
+      formData.append('title', data.title);
+      formData.append('description', data.description);
+      formData.append('date', data.date.toISOString());
+      formData.append('is_published', data.is_published.toString());
+      formData.append('files', photos[0]);
+
+      try {
+        // Use a direct API call to create news with photo
+        const response = await apiClient.post('/news/', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          }
+        });
+
+        // If there are additional photos, upload them
+        if (photos.length > 1 && response.data.id) {
+          for (let i = 1; i < photos.length; i++) {
             try {
               await uploadNewsPhoto.mutateAsync({
-                id: newNews.id,
-                file: photo
-              })
-            } catch (error) {
-              console.error('Error uploading photo:', error)
+                id: response.data.id,
+                file: photos[i]
+              });
+            } catch (photoError) {
+              console.error(`Error uploading additional photo ${i}:`, photoError);
             }
           }
         }
 
-        setIsDialogOpen(false)
-        refetch()
+        setIsDialogOpen(false);
+        refetch();
+      } catch (error) {
+        console.error('Error creating news with photo:', error);
+        toast({
+          title: "Gagal",
+          description: "Terjadi kesalahan saat membuat berita",
+          variant: "destructive",
+        });
       }
-    })
+    } else {
+      // If no photos, use the regular mutation
+      createNews.mutate({
+        title: data.title,
+        description: data.description,
+        date: data.date.toISOString(),
+        is_published: data.is_published
+      }, {
+        onSuccess: (newNews) => {
+          setIsDialogOpen(false);
+          refetch();
+        }
+      });
+    }
   }
 
   // Handle delete news
