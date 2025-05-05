@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
+import { TipTapEditor } from "@/components/ui/tiptap-editor"
 
 const transactionFormSchema = z.object({
   date: z.date({
@@ -89,7 +90,13 @@ export function TransactionForm({ onSubmit, defaultValues }: TransactionFormProp
             <FormItem>
               <FormLabel>Deskripsi</FormLabel>
               <FormControl>
-                <Input placeholder="Masukkan deskripsi transaksi" {...field} />
+                <div className="mt-1">
+                  <TipTapEditor
+                    content={field.value}
+                    onChange={field.onChange}
+                    placeholder="Masukkan deskripsi transaksi"
+                  />
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>

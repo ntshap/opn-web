@@ -35,6 +35,8 @@ function ErrorFallback({ error, resetErrorBoundary }: { error: Error, resetError
 
 function MeetingMinutesListContent({ eventId }: MeetingMinutesListProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [editingMinute, setEditingMinute] = useState<any>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const { toast } = useToast()
 
@@ -259,6 +261,118 @@ function MeetingMinutesListContent({ eventId }: MeetingMinutesListProps) {
     }
   }
 
+  // Handle editing meeting minutes
+  const handleEditMinutes = (minute: any) => {
+    console.log('Editing meeting minute with ID:', minute.id, 'and data:', minute)
+    setEditingMinute(minute)
+    setIsEditDialogOpen(true)
+  }
+
+  // Handle update meeting minutes
+  const handleUpdateMinutes = async (data: any) => {
+    try {
+      if (!editingMinute) return;
+
+      console.log('Updating meeting minutes with description:', data.description)
+      console.log('Minute ID:', editingMinute.id)
+
+      // Show loading toast
+      toast({
+        title: "Memperbarui...",
+        description: "Sedang memperbarui notulensi",
+      });
+
+      try {
+        // Get the token from localStorage
+        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('Authentication token not found');
+        }
+
+        // Make sure we have the correct ID
+        const minuteId = editingMinute.id;
+        console.log('Using meeting minute ID for update:', minuteId);
+
+        // Create a new meeting minute with the updated data
+        const createResponse = await fetch(`/api/v1/meeting-minutes/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            title: editingMinute.title, // Keep the original title
+            description: data.description || '',
+            date: typeof editingMinute.date === 'string' ? editingMinute.date : new Date(editingMinute.date).toISOString().split('T')[0],
+            document_url: editingMinute.document_url || '',
+            event_id: Number(eventId)
+          })
+        });
+
+        if (!createResponse.ok) {
+          const errorText = await createResponse.text();
+          console.error(`Error response from server when creating: ${createResponse.status} ${createResponse.statusText}`, errorText);
+          throw new Error(`Failed to create new meeting minutes: ${createResponse.status} ${createResponse.statusText}`);
+        }
+
+        // Parse the response
+        const createResponseData = await createResponse.json();
+        console.log('Create successful, response:', createResponseData);
+
+        // Now delete the old meeting minute
+        const deleteResponse = await fetch(`/api/v1/meeting-minutes/${minuteId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!deleteResponse.ok) {
+          console.error(`Error response from server when deleting: ${deleteResponse.status} ${deleteResponse.statusText}`);
+          // Even if delete fails, we've still created a new one, so we can continue
+        } else {
+          console.log('Delete successful');
+        }
+
+        // Close the dialog and show success message
+        setIsEditDialogOpen(false);
+        setEditingMinute(null);
+
+        // Refetch the data
+        refetch();
+
+        // Show success toast
+        toast({
+          title: "Berhasil",
+          description: "Notulensi berhasil diperbarui",
+        });
+      } catch (error: any) {
+        console.error('Error updating meeting minutes:', error);
+
+        // Show more specific error messages based on the error type
+        let errorMessage = "Terjadi kesalahan saat memperbarui notulensi";
+
+        if (error instanceof Error) {
+          // Use the error message from the API if available
+          errorMessage = error.message;
+        }
+
+        toast({
+          title: "Gagal",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error in handleUpdateMinutes:', error);
+      toast({
+        title: "Gagal",
+        description: "Terjadi kesalahan saat memperbarui notulensi",
+        variant: "destructive",
+      });
+    }
+  }
+
   // Handle deleting meeting minutes
   const handleDeleteMinutes = (id: number) => {
     try {
@@ -413,6 +527,37 @@ function MeetingMinutesListContent({ eventId }: MeetingMinutesListProps) {
               />
             </DialogContent>
           </Dialog>
+
+          {/* Edit Meeting Minutes Dialog */}
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent
+              className="sm:max-w-[600px]"
+              onPointerDownOutside={(e) => {
+                // Prevent closing when clicking inside the editor
+                if (e.target && (e.target as HTMLElement).closest('.tiptap')) {
+                  e.preventDefault();
+                }
+              }}
+            >
+              <DialogHeader>
+                <DialogTitle>Edit Notulensi Rapat</DialogTitle>
+              </DialogHeader>
+              {editingMinute && (
+                <MeetingMinutesForm
+                  eventId={Number(eventId)}
+                  defaultValues={{
+                    title: editingMinute.title,
+                    description: editingMinute.description,
+                    date: new Date(editingMinute.date),
+                    document_url: editingMinute.document_url,
+                    event_id: Number(eventId)
+                  }}
+                  onSubmit={handleUpdateMinutes}
+                  isSubmitting={updateMeetingMinutes.isPending}
+                />
+              )}
+            </DialogContent>
+          </Dialog>
         </div>
       </CardHeader>
       <CardContent>
@@ -432,31 +577,41 @@ function MeetingMinutesListContent({ eventId }: MeetingMinutesListProps) {
                     <h3 className="font-medium">{minutes.title}</h3>
                     <p className="text-sm text-muted-foreground">{formatDate(minutes.date)}</p>
                   </div>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <Trash className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Hapus Notulensi</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Apakah Anda yakin ingin menghapus notulensi ini? Tindakan ini tidak dapat dibatalkan.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Batal</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDeleteMinutes(minutes.id)}>
-                          Hapus
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  <div className="flex items-center space-x-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleEditMinutes(minutes)}
+                      title="Edit Notulensi"
+                    >
+                      <Edit className="h-4 w-4 text-blue-600" />
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" title="Hapus Notulensi">
+                          <Trash className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Hapus Notulensi</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Apakah Anda yakin ingin menghapus notulensi ini? Tindakan ini tidak dapat dibatalkan.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Batal</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeleteMinutes(minutes.id)}>
+                            Hapus
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
                 <div className="mb-3 prose max-w-none">
                   {minutes.description && minutes.description.trim() !== '' ? (
-                    <div dangerouslySetInnerHTML={{ __html: minutes.description }} />
+                    <div className="meeting-minutes-content" dangerouslySetInnerHTML={{ __html: minutes.description }} />
                   ) : (
                     <p className="text-gray-500 italic">Tidak ada deskripsi</p>
                   )}

@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Finance, financeApi, FinanceHistoryResponse as ApiFinanceHistoryResponse } from '@/lib/api-service'; // Updated path
+import { uploadsApi } from '@/lib/api-uploads';
 
 // This interface matches the transaction object in the API response
 export interface FinanceTransaction {
@@ -128,16 +129,15 @@ export function useFinanceMutations() {
     }
   });
 
-  // Add uploadDocument mutation with a dummy implementation
-  const uploadDocument = useMutation<string, Error, { financeId: number | string, file: File }>({
+  // Upload document mutation using the proper API function
+  const uploadDocument = useMutation<any, Error, { financeId: number | string, file: File }>({
     mutationFn: async ({ financeId, file }: { financeId: number | string, file: File }) => {
       console.log(`Uploading document for finance record ${financeId}`);
-      // Use the statically imported financeApi
       try {
-        // TODO: Implement financeApi.uploadFinanceDocument in lib/api.ts
-        // For now, just log and return a dummy URL
-        console.log('Document upload requested but not implemented in API');
-        return `/api/v1/finance/${financeId}/documents/dummy-${Date.now()}`;
+        // Use the uploadsApi to upload the document
+        const response = await uploadsApi.uploadFinanceDocument(financeId, file);
+        console.log('Document upload response:', response);
+        return response;
       } catch (error) {
         console.error('Error uploading document:', error);
         throw error;

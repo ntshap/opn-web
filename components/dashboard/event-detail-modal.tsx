@@ -147,8 +147,8 @@ export function EventDetailModal({ show, onClose, event, onUpdate }: EventDetail
       console.log(`Saving attendance for member ${attendee.member_id || attendee.id} with status: ${attendanceForm.status}`);
 
       // Format the data for the API and ensure status is one of the allowed values
-      const status = attendanceForm.status === "Hadir" ? "Hadir" :
-                    attendanceForm.status === "Izin" ? "Izin" : "Alfa";
+      // Only allow the three valid status values from the database schema: Hadir, Izin, Alfa
+      const status = ["Hadir", "Izin", "Alfa"].includes(attendanceForm.status) ? attendanceForm.status : "Hadir";
 
       const attendanceData = [{
         member_id: attendee.member_id || attendee.id,
@@ -200,11 +200,11 @@ export function EventDetailModal({ show, onClose, event, onUpdate }: EventDetail
   const getStatusColor = (status: string): "default" | "destructive" | "outline" | "secondary" => { // Update return type
     switch (status.toLowerCase()) {
       case "hadir":
-        return "secondary" // Map success to secondary
+        return "secondary" // Green for present
       case "alfa":
-        return "destructive"
+        return "destructive" // Red for absent without permission
       case "izin":
-        return "secondary" // Map warning to secondary (or outline)
+        return "outline" // Yellow/outline for absent with permission
       default:
         return "default"
     }

@@ -219,7 +219,7 @@ export default function EventPageClient({ id }: { id: string }) {
             attendees={attendanceArray.map(a => ({
               ...a,
               // Ensure we have a name field for backward compatibility
-              name: a.member_name || `Member ${a.member_id}`
+              name: a.member_name || `Anggota ${a.member_id}`
             }))}
             onRefresh={() => refetch()}
           />

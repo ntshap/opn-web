@@ -10,6 +10,7 @@ import { useMembers } from "@/hooks/useMembers"
 import { useAttendanceMutations } from "@/hooks/useEvents"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { getSavedAttendanceData, saveAttendanceData } from "@/utils/attendance-utils"
 
 interface MemberAttendanceFormProps {
   eventId: string | number
@@ -99,17 +100,9 @@ export const MemberAttendanceForm = forwardRef<
 
         console.log('Normalized members data:', normalizedMembers);
 
-        // Try to load saved attendance data from localStorage
-        let savedAttendanceData: any[] = [];
-        try {
-          const savedAttendance = localStorage.getItem(`event_${eventId}_attendance`);
-          if (savedAttendance) {
-            savedAttendanceData = JSON.parse(savedAttendance);
-            console.log(`[MemberAttendanceForm] Loaded saved attendance data from localStorage:`, savedAttendanceData);
-          }
-        } catch (storageError) {
-          console.error("[MemberAttendanceForm] Error loading saved attendance data:", storageError);
-        }
+        // Load saved attendance data from localStorage using our utility function
+        const savedAttendanceData = getSavedAttendanceData(eventId);
+        console.log(`[MemberAttendanceForm] Loaded ${savedAttendanceData.length} saved attendance records from localStorage:`, savedAttendanceData);
 
         // Create initial attendance records from the normalized data
         const initialRecords = Object.entries(normalizedMembers).flatMap(([division, membersList]) => {
@@ -217,11 +210,8 @@ export const MemberAttendanceForm = forwardRef<
     getAttendanceData: () => {
       // Format data and ensure status values are valid
       return attendanceRecords.map(record => {
-        // Validate status to ensure it's one of the expected values
-        const validStatus = record.status === "Hadir" ? "Hadir" :
-                           record.status === "Izin" ? "Izin" :
-                           record.status === "Alfa" ? "Alfa" :
-                           record.status === "Tidak Hadir" ? "Alfa" : "Hadir";
+        // Validate status to ensure it's one of the expected values from the database schema
+        const validStatus = ["Hadir", "Izin", "Alfa"].includes(record.status) ? record.status : "Hadir";
 
         return {
           member_id: record.member_id,
@@ -237,11 +227,8 @@ export const MemberAttendanceForm = forwardRef<
     try {
       // Format data and ensure status values are valid
       const attendanceData = attendanceRecords.map(record => {
-        // Validate status to ensure it's one of the expected values
-        const validStatus = record.status === "Hadir" ? "Hadir" :
-                           record.status === "Izin" ? "Izin" :
-                           record.status === "Alfa" ? "Alfa" :
-                           record.status === "Tidak Hadir" ? "Alfa" : "Hadir";
+        // Validate status to ensure it's one of the expected values from the database schema
+        const validStatus = ["Hadir", "Izin", "Alfa"].includes(record.status) ? record.status : "Hadir";
 
         return {
           member_id: record.member_id,
@@ -252,13 +239,20 @@ export const MemberAttendanceForm = forwardRef<
 
       console.log(`[MemberAttendanceForm] Saving ${attendanceData.length} attendance records for event ${eventId} locally`);
 
-      // Store attendance data in localStorage for persistence
-      try {
-        localStorage.setItem(`event_${eventId}_attendance`, JSON.stringify(attendanceData));
-        console.log(`[MemberAttendanceForm] Saved attendance data to localStorage`);
-      } catch (storageError) {
-        console.error("[MemberAttendanceForm] Error saving to localStorage:", storageError);
+      // Save attendance data to localStorage using our utility function
+      const saveResult = saveAttendanceData(eventId, attendanceData);
+
+      if (!saveResult) {
+        console.error("[MemberAttendanceForm] Failed to save attendance data");
+        toast({
+          title: "Error",
+          description: "Gagal menyimpan data kehadiran ke penyimpanan lokal",
+          variant: "destructive"
+        });
+        return Promise.reject(new Error("Failed to save attendance data"));
       }
+
+      console.log(`[MemberAttendanceForm] Successfully saved attendance data to localStorage`);
 
       // Notify parent component about the change
       if (onAttendanceChange && typeof onAttendanceChange === 'function') {
@@ -283,7 +277,7 @@ export const MemberAttendanceForm = forwardRef<
         return "success"
       case "izin":
         return "warning"
-      case "tidak hadir":
+      case "alfa":
         return "destructive"
       default:
         return "secondary"
@@ -341,7 +335,8 @@ export const MemberAttendanceForm = forwardRef<
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Hadir">Hadir</SelectItem>
-                            <SelectItem value="Tidak Hadir">Tidak Hadir</SelectItem>
+                            <SelectItem value="Izin">Izin</SelectItem>
+                            <SelectItem value="Alfa">Alfa</SelectItem>
                           </SelectContent>
                         </Select>
                       </td>

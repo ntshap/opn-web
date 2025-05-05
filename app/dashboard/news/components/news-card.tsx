@@ -3,8 +3,10 @@ import { Button } from "@/components/ui/button"
 import { Calendar, User, Trash2, Edit } from "lucide-react"
 import { SecureImage } from "@/components/shared/SecureImage"
 import { formatImageUrl } from "@/lib/image-utils"
+import { TipTapContent } from "@/components/ui/tiptap-editor"
 import { useState } from "react"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
+import "./news-card.css"
 
 interface NewsCardProps {
   id: number
@@ -73,8 +75,10 @@ export function NewsCard({
         </div>
         <CardTitle className="line-clamp-2">{title}</CardTitle>
         <CardDescription className="line-clamp-3">
-          {/* Strip HTML tags for the description preview */}
-          {description.replace(/<[^>]*>/g, '')}
+          <div className="news-card-description">
+            {/* Use TipTapContent for formatted description */}
+            <TipTapContent content={description} />
+          </div>
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-grow">

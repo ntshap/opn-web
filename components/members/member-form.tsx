@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Calendar as CalendarIcon, Loader2 } from "lucide-react"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
@@ -23,7 +24,6 @@ const formSchema = z.object({
   birth_place: z.string().optional(),
   division: z.string().min(1, { message: "Divisi harus diisi" }),
   address: z.string().min(5, { message: "Alamat harus diisi minimal 5 karakter" }),
-  position: z.string().min(1, { message: "Jabatan harus diisi" }),
   username: z.string().optional(),
   role: z.string().optional(),
 })
@@ -37,7 +37,6 @@ interface MemberFormProps {
     birth_place?: string
     division: string
     address: string
-    position: string
     username?: string
     role?: string
   }>
@@ -57,7 +56,6 @@ export function MemberForm({ defaultValues, onSubmit, isSubmitting = false, isEd
       birth_place: defaultValues?.birth_place || "",
       division: defaultValues?.division || "",
       address: defaultValues?.address || "",
-      position: defaultValues?.position || "",
       username: defaultValues?.username || "",
       role: defaultValues?.role || "member",
     },
@@ -67,7 +65,7 @@ export function MemberForm({ defaultValues, onSubmit, isSubmitting = false, isEd
 
   function handleSubmit(values: z.infer<typeof formSchema>) {
     // Format the date to ISO string (YYYY-MM-DD)
-    const birthDate = values.birth_date.toISOString().split('T')[0];
+    const birthDate = values.birth_date.toISOString();
 
     // Calculate age from birth date
     const birthYear = new Date(values.birth_date).getFullYear();
@@ -98,7 +96,6 @@ export function MemberForm({ defaultValues, onSubmit, isSubmitting = false, isEd
         member_info: {
           full_name: values.full_name,
           division: values.division,
-          position: values.position,
           email: values.email,
           phone_number: values.phone_number,
           birth_date: birthDate,
@@ -223,27 +220,29 @@ export function MemberForm({ defaultValues, onSubmit, isSubmitting = false, isEd
           render={({ field }) => (
             <FormItem>
               <FormLabel>Divisi</FormLabel>
-              <FormControl>
-                <Input placeholder="Masukkan nama divisi" {...field} />
-              </FormControl>
+              <Select
+                onValueChange={field.onChange}
+                defaultValue={field.value}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih divisi" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="divisi agama">Divisi Agama</SelectItem>
+                  <SelectItem value="divisi sosial">Divisi Sosial</SelectItem>
+                  <SelectItem value="divisi lingkungan">Divisi Lingkungan</SelectItem>
+                  <SelectItem value="divisi perlengkapan">Divisi Perlengkapan</SelectItem>
+                  <SelectItem value="divisi media">Divisi Media</SelectItem>
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="position"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Jabatan</FormLabel>
-              <FormControl>
-                <Input placeholder="Masukkan jabatan" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+
 
         <FormField
           control={form.control}

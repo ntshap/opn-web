@@ -193,7 +193,14 @@ export default function MembersPage() {
           <TabsList className="overflow-x-auto">
             {divisions.map((division) => (
               <TabsTrigger key={division} value={division}>
-                {division === "all" ? "Semua" : division === "string" ? "Tidak ada divisi" : division}
+                {division === "all" ? "Semua" :
+                 division === "string" ? "Tidak ada divisi" :
+                 division === "divisi agama" ? "Divisi Agama" :
+                 division === "divisi sosial" ? "Divisi Sosial" :
+                 division === "divisi lingkungan" ? "Divisi Lingkungan" :
+                 division === "divisi perlengkapan" ? "Divisi Perlengkapan" :
+                 division === "divisi media" ? "Divisi Media" :
+                 division}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -264,7 +271,6 @@ export default function MembersPage() {
               defaultValues={{
                 full_name: selectedMember.full_name || '',
                 division: selectedMember.division || '',
-                position: selectedMember.position || '',
                 email: selectedMember.email || '',
                 phone_number: selectedMember.phone_number || '',
                 birth_date: selectedMember.birth_date ? new Date(selectedMember.birth_date) : new Date(),

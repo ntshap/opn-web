@@ -22,7 +22,23 @@ export function TipTapEditor({ content, onChange, placeholder, className = '' }:
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        orderedList: {
+          HTMLAttributes: {
+            class: 'list-decimal pl-6',
+          },
+        },
+        bulletList: {
+          HTMLAttributes: {
+            class: 'list-disc pl-6',
+          },
+        },
+        listItem: {
+          HTMLAttributes: {
+            class: 'mb-1',
+          },
+        },
+      }),
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
@@ -33,7 +49,22 @@ export function TipTapEditor({ content, onChange, placeholder, className = '' }:
     ],
     content: content || '',
     onUpdate: ({ editor }) => {
-      const html = editor.getHTML();
+      let html = editor.getHTML();
+
+      // Format ordered lists to match the desired structure
+      // This ensures that when an ordered list is created, it has the proper HTML structure
+      // with <ol><li><p>content</p></li></ol> format
+      if (html.includes('<ol>') || html.includes('<ol ')) {
+        // Use regex to ensure each list item has proper <p> tags
+        html = html.replace(/<li>(.*?)<\/li>/g, (match, content) => {
+          // If content doesn't already have <p> tags, wrap it
+          if (!content.trim().startsWith('<p>')) {
+            return `<li><p>${content}</p></li>`;
+          }
+          return match;
+        });
+      }
+
       console.log('Editor content updated:', html);
       onChange(html);
     },
@@ -161,7 +192,15 @@ export function TipTapEditor({ content, onChange, placeholder, className = '' }:
             e.preventDefault();
             e.stopPropagation();
             editor?.chain().focus().toggleOrderedList().run();
+
+            // After toggling the ordered list, ensure proper formatting
+            if (editor?.isActive('orderedList')) {
+              // If we just activated an ordered list, make sure it has proper structure
+              const html = editor.getHTML();
+              console.log('Ordered list activated, current HTML:', html);
+            }
           }}
+          title="Daftar Bernomor"
         >
           <ListOrdered className="h-4 w-4" />
         </button>
@@ -266,6 +305,26 @@ export function TipTapEditor({ content, onChange, placeholder, className = '' }:
             >
               <LinkIcon className="h-4 w-4" />
             </button>
+            <button
+              className={`p-1 hover:bg-gray-100 ${editor.isActive('bulletList') ? 'bg-gray-100' : ''}`}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                editor.chain().focus().toggleBulletList().run();
+              }}
+            >
+              <List className="h-4 w-4" />
+            </button>
+            <button
+              className={`p-1 hover:bg-gray-100 ${editor.isActive('orderedList') ? 'bg-gray-100' : ''}`}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                editor.chain().focus().toggleOrderedList().run();
+              }}
+            >
+              <ListOrdered className="h-4 w-4" />
+            </button>
           </div>
         </BubbleMenu>
       )}
@@ -285,9 +344,24 @@ export function TipTapContent({ content }: { content: string }) {
     )
   }
 
+  // Process content to ensure proper formatting for ordered lists
+  let processedContent = content;
+
+  // Ensure ordered lists have the proper structure with <p> tags inside <li> elements
+  if (processedContent.includes('<ol>') || processedContent.includes('<ol ')) {
+    // Use regex to ensure each list item has proper <p> tags
+    processedContent = processedContent.replace(/<li>(.*?)<\/li>/g, (match, content) => {
+      // If content doesn't already have <p> tags, wrap it
+      if (!content.trim().startsWith('<p>')) {
+        return `<li><p>${content}</p></li>`;
+      }
+      return match;
+    });
+  }
+
   return (
     <div className="border rounded-md p-4 min-h-[100px] prose max-w-none">
-      <div dangerouslySetInnerHTML={{ __html: content }} />
+      <div dangerouslySetInnerHTML={{ __html: processedContent }} />
     </div>
   )
 }

@@ -14,3 +14,23 @@
 .finance-expense-value {
   color: #000000 !important; /* Black color */
 }
+
+/* Custom styles for TipTap content in finance table */
+.max-w-\[200px\] .prose {
+  min-height: auto !important;
+  padding: 0 !important;
+  border: none !important;
+  max-height: 100px;
+  overflow-y: auto;
+  font-size: 0.875rem;
+}
+
+.max-w-\[200px\] .prose p {
+  margin: 0;
+}
+
+.max-w-\[200px\] .prose ul,
+.max-w-\[200px\] .prose ol {
+  margin: 0;
+  padding-left: 1.5rem;
+}

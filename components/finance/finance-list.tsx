@@ -10,11 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { AlertCircle, ArrowUpDown, Download, Edit, Plus, Search, Trash2 } from "lucide-react"
+import { AlertCircle, ArrowUpDown, Download, Edit, Plus, Search, Trash2, Upload, Image } from "lucide-react"
 import { format, parseISO } from "date-fns"
 import { id } from "date-fns/locale"
 import { useFinanceHistory } from "@/hooks/useFinance"
 import { formatRupiah } from "@/lib/utils"
+import { FinanceDocumentGallery } from "./finance-document-gallery"
 
 export function FinanceList() {
   const router = useRouter()
@@ -23,9 +24,19 @@ export function FinanceList() {
     start_date: "",
     end_date: "",
   })
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false)
+  const [selectedFinanceId, setSelectedFinanceId] = useState<number | null>(null)
+  const [selectedDocumentUrl, setSelectedDocumentUrl] = useState<string | null>(null)
 
   // Fetch finance history with real API
   const { data, isLoading, error, refetch } = useFinanceHistory(filters)
+
+  // Handle opening the document gallery
+  const handleOpenDocumentGallery = (finance: any) => {
+    setSelectedFinanceId(finance.id)
+    setSelectedDocumentUrl(finance.document_url)
+    setIsGalleryOpen(true)
+  }
 
   // Format currency in Rupiah
   const formatCurrency = (amount: string) => {
@@ -253,8 +264,18 @@ export function FinanceList() {
                               variant="ghost"
                               size="icon"
                               onClick={() => router.push(`/finance/${finance.id}`)}
+                              title="Edit Transaksi"
                             >
                               <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-blue-600"
+                              onClick={() => handleOpenDocumentGallery(finance)}
+                              title={finance.document_url ? "Lihat Bukti Transaksi" : "Unggah Bukti Transaksi"}
+                            >
+                              <Image className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"
@@ -266,6 +287,7 @@ export function FinanceList() {
                                   console.log("Delete finance", finance.id)
                                 }
                               }}
+                              title="Hapus Transaksi"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -286,6 +308,20 @@ export function FinanceList() {
           {/* Pagination would go here */}
         </CardFooter>
       </Card>
+
+      {/* Document Gallery */}
+      {selectedFinanceId && (
+        <FinanceDocumentGallery
+          open={isGalleryOpen}
+          onOpenChange={setIsGalleryOpen}
+          financeId={selectedFinanceId}
+          documentUrl={selectedDocumentUrl}
+          onSuccess={() => {
+            // Refresh the data after successful upload or delete
+            refetch()
+          }}
+        />
+      )}
     </div>
   )
 }

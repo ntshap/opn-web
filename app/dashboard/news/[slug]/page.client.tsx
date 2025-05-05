@@ -16,6 +16,7 @@ import { format } from "date-fns"
 import { id } from "date-fns/locale"
 import { Badge } from "@/components/ui/badge"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
+import { TipTapContent } from "@/components/ui/tiptap-editor"
 
 export default function NewsDetailPageClient({ slug }: { slug: string }) {
   const router = useRouter()
@@ -193,7 +194,15 @@ export default function NewsDetailPageClient({ slug }: { slug: string }) {
                 Edit
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px] max-h-[90vh]">
+            <DialogContent
+              className="sm:max-w-[600px] max-h-[90vh]"
+              onPointerDownOutside={(e) => {
+                // Prevent closing when clicking inside the editor
+                if (e.target && (e.target as HTMLElement).closest('.tiptap')) {
+                  e.preventDefault();
+                }
+              }}
+            >
               <DialogHeader>
                 <DialogTitle>Edit Berita</DialogTitle>
               </DialogHeader>
@@ -280,7 +289,7 @@ export default function NewsDetailPageClient({ slug }: { slug: string }) {
           </div>
 
           <div className="prose max-w-none">
-            <div dangerouslySetInnerHTML={{ __html: newsItem.description }} />
+            <TipTapContent content={newsItem.description} />
           </div>
 
           {/* Photo upload test component */}

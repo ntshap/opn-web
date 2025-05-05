@@ -1,0 +1,27 @@
+/* Custom styles for news card description */
+.news-card-description .prose {
+  min-height: auto !important;
+  padding: 0 !important;
+  border: none !important;
+  max-height: 100px;
+  overflow-y: hidden;
+  font-size: 0.875rem;
+}
+
+.news-card-description .prose p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.news-card-description .prose ul,
+.news-card-description .prose ol {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+/* Remove border from TipTapContent in news card */
+.news-card-description .border {
+  border: none !important;
+  padding: 0 !important;
+  min-height: 0 !important;
+}

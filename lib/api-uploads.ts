@@ -3,7 +3,7 @@
  * Handles all upload-related API calls
  */
 import axios, { AxiosResponse } from 'axios';
-import { apiClient } from './api-client';
+import { apiClient, uploadsApiClient } from './api-client';
 import { API_CONFIG } from './config';
 import { getAuthToken } from './auth-utils';
 import { withRetry } from './api-utils';
@@ -252,10 +252,26 @@ export const uploadsApi = {
     onProgress?: (percentage: number) => void
   ): Promise<any> => {
     try {
-      console.log(`[API] Uploading document for finance ID: ${financeId}`);
+      console.log(`[API-Uploads] Uploading document for finance ID: ${financeId}`);
+
+      // Validate financeId
+      if (!financeId) {
+        console.error('[API-Uploads] Invalid finance ID for document upload: empty or undefined');
+        throw new Error('Invalid finance ID. Please provide a valid finance ID.');
+      }
+
+      // Ensure financeId is a valid number
+      const numericFinanceId = Number(financeId);
+      console.log('[API-Uploads] Converted finance ID:', numericFinanceId, 'isNaN:', isNaN(numericFinanceId));
+
+      if (isNaN(numericFinanceId) || numericFinanceId <= 0) {
+        console.error('[API-Uploads] Invalid finance ID (not a valid positive number) for document upload:', financeId);
+        throw new Error('Invalid finance ID. Please provide a valid numeric finance ID.');
+      }
 
       // Make sure the ID is properly formatted
-      const id = String(financeId).trim();
+      const id = String(numericFinanceId).trim();
+      console.log('[API-Uploads] Formatted ID for API call:', id);
 
       // Create form data
       const formData = new FormData();
@@ -269,43 +285,103 @@ export const uploadsApi = {
         throw new Error('Authentication token not found. Please log in again.');
       }
 
-      // Use the correct endpoint for uploading document
-      const response = await apiClient.post(
-        `/uploads/finances/${id}/document`, // Removed trailing slash
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-          onUploadProgress: onProgress
-            ? (progressEvent) => {
-                const total = progressEvent.total || 0;
-                const loaded = progressEvent.loaded || 0;
-                const percentCompleted = total > 0 ? Math.round((loaded * 100) / total) : 0;
-                onProgress(percentCompleted);
-              }
-            : undefined
-        }
-      );
+      // Log the full API URL for debugging
+      // Use the standard URL format for all endpoints
+      // Format should be: https://backend-project-pemuda.onrender.com/api/v1/uploads/finances/10/document
+      const apiEndpoint = `/uploads/finances/${id}/document`; // Standard format
+      console.log('[API-Uploads] Making API request to endpoint:', apiEndpoint);
 
-      console.log(`[API] Successfully uploaded document for finance ${id}:`, response.data);
+      // The uploadsApiClient has baseURL: ${API_CONFIG.BACKEND_URL}/api/v1
+      // So the full URL will be: https://backend-project-pemuda.onrender.com/api/v1/uploads/finances/10/document
+      // This is the standard format for all API endpoints
+
+      // Use the uploadsApiClient for uploading document
+      const response = await withRetry(() => {
+        console.log('[API-Uploads] Attempting API call with uploadsApiClient');
+        return uploadsApiClient.post(
+          apiEndpoint,
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+            onUploadProgress: onProgress
+              ? (progressEvent) => {
+                  const total = progressEvent.total || 0;
+                  const loaded = progressEvent.loaded || 0;
+                  const percentCompleted = total > 0 ? Math.round((loaded * 100) / total) : 0;
+                  console.log(`[API-Uploads] Upload progress: ${percentCompleted}%`);
+                  onProgress(percentCompleted);
+                }
+              : undefined
+          }
+        );
+      });
+
+      console.log(`[API-Uploads] Successfully uploaded document for finance ${id}:`, response.data);
+      console.log('[API-Uploads] Response status:', response.status, 'Response headers:', response.headers);
       return response.data;
     } catch (error) {
       // Handle canceled requests gracefully
       if (axios.isCancel(error)) {
-        console.log('[API] Finance document upload was cancelled');
+        console.log('[API-Uploads] Finance document upload was cancelled');
         return {};
       }
 
+      // Handle 502 Bad Gateway errors
+      if (axios.isAxiosError(error) && (error.response?.status === 502 || error.response?.status === 504)) {
+        console.error(`[API-Uploads] Server error (${error.response.status}) uploading document for finance ${financeId}. Returning empty result.`);
+        return {};
+      }
+
+      // Handle 404 Not Found errors
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        console.error(`[API-Uploads] Endpoint not found (404) for finance ${financeId}. Check API endpoint format.`);
+        throw new Error('ID transaksi tidak valid. Silakan coba lagi atau muat ulang halaman.');
+      }
+
+      // Handle 400 Bad Request errors
+      if (axios.isAxiosError(error) && error.response?.status === 400) {
+        console.error(`[API-Uploads] Bad request (400) for finance ${financeId}. Invalid parameters.`);
+        throw new Error('Format permintaan tidak valid. Silakan coba lagi.');
+      }
+
       // Log detailed error information
-      console.error('[API] Error in uploadFinanceDocument:', {
+      console.error('[API-Uploads] Error in uploadFinanceDocument:', {
         financeId,
         error: error instanceof Error ? error.message : String(error),
         status: axios.isAxiosError(error) ? error.response?.status : 'unknown',
         data: axios.isAxiosError(error) ? error.response?.data : null,
+        headers: axios.isAxiosError(error) ? error.response?.headers : null,
+        config: axios.isAxiosError(error) ? {
+          url: error.config?.url,
+          method: error.config?.method,
+          baseURL: error.config?.baseURL,
+          headers: error.config?.headers,
+          data: error.config?.data ? 'FormData (not shown)' : null
+        } : null
       });
 
-      throw error;
+      // Throw a user-friendly error message with more details
+      if (axios.isAxiosError(error) && error.response) {
+        const status = error.response.status;
+        if (status === 401) {
+          throw new Error('Gagal mengunggah dokumen: Anda tidak terautentikasi. Silakan login kembali.');
+        } else if (status === 403) {
+          throw new Error('Gagal mengunggah dokumen: Anda tidak memiliki izin untuk mengunggah dokumen ke transaksi ini.');
+        } else if (status === 404) {
+          throw new Error('Gagal mengunggah dokumen: Transaksi tidak ditemukan. Silakan periksa ID transaksi.');
+        } else if (status === 413) {
+          throw new Error('Gagal mengunggah dokumen: Ukuran file terlalu besar. Silakan kompres dokumen atau unggah file yang lebih kecil.');
+        } else if (status === 415) {
+          throw new Error('Gagal mengunggah dokumen: Format file tidak didukung. Silakan gunakan format JPG, PNG, atau PDF.');
+        } else if (status >= 500) {
+          throw new Error(`Gagal mengunggah dokumen: Terjadi kesalahan pada server (${status}). Silakan coba lagi nanti.`);
+        }
+      }
+
+      // Generic error message as fallback
+      throw new Error('Gagal mengunggah dokumen. Silakan coba lagi atau muat ulang halaman.');
     }
   },
 
@@ -316,10 +392,26 @@ export const uploadsApi = {
     onProgress?: (percentage: number) => void
   ): Promise<any> => {
     try {
-      console.log(`[API] Editing document for finance ID: ${financeId}`);
+      console.log(`[API-Uploads] Editing document for finance ID: ${financeId}`);
+
+      // Validate financeId
+      if (!financeId) {
+        console.error('[API-Uploads] Invalid finance ID for document edit: empty or undefined');
+        throw new Error('Invalid finance ID. Please provide a valid finance ID.');
+      }
+
+      // Ensure financeId is a valid number
+      const numericFinanceId = Number(financeId);
+      console.log('[API-Uploads] Converted finance ID:', numericFinanceId, 'isNaN:', isNaN(numericFinanceId));
+
+      if (isNaN(numericFinanceId) || numericFinanceId <= 0) {
+        console.error('[API-Uploads] Invalid finance ID (not a valid positive number) for document edit:', financeId);
+        throw new Error('Invalid finance ID. Please provide a valid numeric finance ID.');
+      }
 
       // Make sure the ID is properly formatted
-      const id = String(financeId).trim();
+      const id = String(numericFinanceId).trim();
+      console.log('[API-Uploads] Formatted ID for API call:', id);
 
       // Create form data
       const formData = new FormData();
@@ -333,69 +425,193 @@ export const uploadsApi = {
         throw new Error('Authentication token not found. Please log in again.');
       }
 
-      // Use the correct endpoint for editing document
-      const response = await apiClient.put(
-        `/uploads/finances/${id}/document`, // Removed trailing slash
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-          onUploadProgress: onProgress
-            ? (progressEvent) => {
-                const total = progressEvent.total || 0;
-                const loaded = progressEvent.loaded || 0;
-                const percentCompleted = total > 0 ? Math.round((loaded * 100) / total) : 0;
-                onProgress(percentCompleted);
-              }
-            : undefined
-        }
-      );
+      // Log the full API URL for debugging
+      // Use the standard URL format for all endpoints
+      // Format should be: https://backend-project-pemuda.onrender.com/api/v1/uploads/finances/10/document
+      const apiEndpoint = `/uploads/finances/${id}/document`; // Standard format
+      console.log('[API-Uploads] Making API request to endpoint:', apiEndpoint);
 
-      console.log(`[API] Successfully edited document for finance ${id}:`, response.data);
+      // The uploadsApiClient has baseURL: ${API_CONFIG.BACKEND_URL}/api/v1
+      // So the full URL will be: https://backend-project-pemuda.onrender.com/api/v1/uploads/finances/10/document
+      // This is the standard format for all API endpoints
+
+      // Use the uploadsApiClient for editing document
+      const response = await withRetry(() => {
+        console.log('[API-Uploads] Attempting API call with uploadsApiClient');
+        return uploadsApiClient.put(
+          apiEndpoint,
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+            onUploadProgress: onProgress
+              ? (progressEvent) => {
+                  const total = progressEvent.total || 0;
+                  const loaded = progressEvent.loaded || 0;
+                  const percentCompleted = total > 0 ? Math.round((loaded * 100) / total) : 0;
+                  console.log(`[API-Uploads] Upload progress: ${percentCompleted}%`);
+                  onProgress(percentCompleted);
+                }
+              : undefined
+          }
+        );
+      });
+
+      console.log(`[API-Uploads] Successfully edited document for finance ${id}:`, response.data);
+      console.log('[API-Uploads] Response status:', response.status, 'Response headers:', response.headers);
       return response.data;
     } catch (error) {
       // Handle canceled requests gracefully
       if (axios.isCancel(error)) {
-        console.log('[API] Finance document edit was cancelled');
+        console.log('[API-Uploads] Finance document edit was cancelled');
         return {};
       }
 
+      // Handle 502 Bad Gateway errors
+      if (axios.isAxiosError(error) && (error.response?.status === 502 || error.response?.status === 504)) {
+        console.error(`[API-Uploads] Server error (${error.response.status}) editing document for finance ${financeId}. Returning empty result.`);
+        return {};
+      }
+
+      // Handle 404 Not Found errors
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        console.error(`[API-Uploads] Endpoint not found (404) for finance ${financeId}. Check API endpoint format.`);
+        throw new Error('ID transaksi tidak valid atau dokumen tidak ditemukan. Silakan coba lagi atau muat ulang halaman.');
+      }
+
+      // Handle 400 Bad Request errors
+      if (axios.isAxiosError(error) && error.response?.status === 400) {
+        console.error(`[API-Uploads] Bad request (400) for finance ${financeId}. Invalid parameters.`);
+        throw new Error('Format permintaan tidak valid. Silakan coba lagi.');
+      }
+
       // Log detailed error information
-      console.error('[API] Error in editFinanceDocument:', {
+      console.error('[API-Uploads] Error in editFinanceDocument:', {
         financeId,
         error: error instanceof Error ? error.message : String(error),
         status: axios.isAxiosError(error) ? error.response?.status : 'unknown',
         data: axios.isAxiosError(error) ? error.response?.data : null,
+        headers: axios.isAxiosError(error) ? error.response?.headers : null,
+        config: axios.isAxiosError(error) ? {
+          url: error.config?.url,
+          method: error.config?.method,
+          baseURL: error.config?.baseURL,
+          headers: error.config?.headers,
+          data: error.config?.data ? 'FormData (not shown)' : null
+        } : null
       });
 
-      throw error;
+      // Throw a user-friendly error message with more details
+      if (axios.isAxiosError(error) && error.response) {
+        const status = error.response.status;
+        if (status === 401) {
+          throw new Error('Gagal mengedit dokumen: Anda tidak terautentikasi. Silakan login kembali.');
+        } else if (status === 403) {
+          throw new Error('Gagal mengedit dokumen: Anda tidak memiliki izin untuk mengedit dokumen transaksi ini.');
+        } else if (status === 404) {
+          throw new Error('Gagal mengedit dokumen: Dokumen tidak ditemukan. Silakan periksa ID transaksi.');
+        } else if (status === 413) {
+          throw new Error('Gagal mengedit dokumen: Ukuran file terlalu besar. Silakan kompres dokumen atau unggah file yang lebih kecil.');
+        } else if (status === 415) {
+          throw new Error('Gagal mengedit dokumen: Format file tidak didukung. Silakan gunakan format JPG, PNG, atau PDF.');
+        } else if (status >= 500) {
+          throw new Error(`Gagal mengedit dokumen: Terjadi kesalahan pada server (${status}). Silakan coba lagi nanti.`);
+        }
+      }
+
+      // Generic error message as fallback
+      throw new Error('Gagal mengedit dokumen. Silakan coba lagi atau muat ulang halaman.');
     }
   },
 
   // Delete finance document
   deleteFinanceDocument: async (financeId: number | string): Promise<any> => {
     try {
-      console.log(`[API] Deleting document for finance ID: ${financeId}`);
+      console.log(`[API-Uploads] Deleting document for finance ID: ${financeId}`);
+
+      // Validate financeId
+      if (!financeId) {
+        console.error('[API-Uploads] Invalid finance ID for document delete: empty or undefined');
+        throw new Error('Invalid finance ID. Please provide a valid finance ID.');
+      }
+
+      // Ensure financeId is a valid number
+      const numericFinanceId = Number(financeId);
+      console.log('[API-Uploads] Converted finance ID:', numericFinanceId, 'isNaN:', isNaN(numericFinanceId));
+
+      if (isNaN(numericFinanceId) || numericFinanceId <= 0) {
+        console.error('[API-Uploads] Invalid finance ID (not a valid positive number) for document delete:', financeId);
+        throw new Error('Invalid finance ID. Please provide a valid numeric finance ID.');
+      }
 
       // Make sure the ID is properly formatted
-      const id = String(financeId).trim();
+      const id = String(numericFinanceId).trim();
+      console.log('[API-Uploads] Formatted ID for API call:', id);
 
-      // Use the correct endpoint for deleting document
-      const response = await apiClient.delete(`/uploads/finances/${id}/document`); // Removed trailing slash
+      // Log the full API URL for debugging
+      // Use the standard URL format for all endpoints
+      // Format should be: https://backend-project-pemuda.onrender.com/api/v1/uploads/finances/10/document
+      const apiEndpoint = `/uploads/finances/${id}/document`; // Standard format
+      console.log('[API-Uploads] Making API request to endpoint:', apiEndpoint);
 
-      console.log(`[API] Successfully deleted document for finance ${id}:`, response.data);
+      // The uploadsApiClient has baseURL: ${API_CONFIG.BACKEND_URL}/api/v1
+      // So the full URL will be: https://backend-project-pemuda.onrender.com/api/v1/uploads/finances/10/document
+      // This is the standard format for all API endpoints
+
+      // Use the uploadsApiClient for deleting document
+      const response = await withRetry(() => {
+        console.log('[API-Uploads] Attempting API call with uploadsApiClient');
+        return uploadsApiClient.delete(apiEndpoint);
+      });
+
+      console.log(`[API-Uploads] Successfully deleted document for finance ${id}:`, response.data);
+      console.log('[API-Uploads] Response status:', response.status, 'Response headers:', response.headers);
       return response.data;
     } catch (error) {
+      // Handle 502 Bad Gateway errors
+      if (axios.isAxiosError(error) && (error.response?.status === 502 || error.response?.status === 504)) {
+        console.error(`[API-Uploads] Server error (${error.response.status}) deleting document for finance ${financeId}. Returning empty result.`);
+        return {};
+      }
+
+      // Handle 404 Not Found errors
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        console.error(`[API-Uploads] Endpoint not found (404) for finance ${financeId}. Check API endpoint format.`);
+        throw new Error('ID transaksi tidak valid atau dokumen tidak ditemukan. Silakan coba lagi atau muat ulang halaman.');
+      }
+
       // Log detailed error information
-      console.error('[API] Error in deleteFinanceDocument:', {
+      console.error('[API-Uploads] Error in deleteFinanceDocument:', {
         financeId,
         error: error instanceof Error ? error.message : String(error),
         status: axios.isAxiosError(error) ? error.response?.status : 'unknown',
         data: axios.isAxiosError(error) ? error.response?.data : null,
+        headers: axios.isAxiosError(error) ? error.response?.headers : null,
+        config: axios.isAxiosError(error) ? {
+          url: error.config?.url,
+          method: error.config?.method,
+          baseURL: error.config?.baseURL,
+          headers: error.config?.headers
+        } : null
       });
 
-      throw error;
+      // Throw a user-friendly error message with more details
+      if (axios.isAxiosError(error) && error.response) {
+        const status = error.response.status;
+        if (status === 401) {
+          throw new Error('Gagal menghapus dokumen: Anda tidak terautentikasi. Silakan login kembali.');
+        } else if (status === 403) {
+          throw new Error('Gagal menghapus dokumen: Anda tidak memiliki izin untuk menghapus dokumen dari transaksi ini.');
+        } else if (status === 404) {
+          throw new Error('Gagal menghapus dokumen: Dokumen tidak ditemukan. Silakan periksa ID transaksi.');
+        } else if (status >= 500) {
+          throw new Error(`Gagal menghapus dokumen: Terjadi kesalahan pada server (${status}). Silakan coba lagi nanti.`);
+        }
+      }
+
+      // Generic error message as fallback
+      throw new Error('Gagal menghapus dokumen. Silakan coba lagi atau muat ulang halaman.');
     }
   },
 

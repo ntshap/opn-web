@@ -198,7 +198,15 @@ export default function NewsPage() {
               Tambah Berita
             </button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px] max-h-[90vh]">
+          <DialogContent
+            className="sm:max-w-[600px] max-h-[90vh]"
+            onPointerDownOutside={(e) => {
+              // Prevent closing when clicking inside the editor
+              if (e.target && (e.target as HTMLElement).closest('.tiptap')) {
+                e.preventDefault();
+              }
+            }}
+          >
             <DialogHeader>
               <DialogTitle>Tambah Berita Baru</DialogTitle>
             </DialogHeader>

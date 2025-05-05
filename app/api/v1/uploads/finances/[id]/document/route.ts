@@ -1,6 +1,11 @@
 /**
  * API route for finance documents
  * Handles POST, PUT, and DELETE requests for finance documents
+ *
+ * Endpoints:
+ * - POST /api/v1/uploads/finances/{finance_id}/document - Upload a new document
+ * - PUT /api/v1/uploads/finances/{finance_id}/document - Update an existing document
+ * - DELETE /api/v1/uploads/finances/{finance_id}/document - Delete a document
  */
 import type { NextRequest } from 'next/server';
 import { handleApiRoute } from '../../../../_helpers/api-route-handler';
@@ -16,6 +21,7 @@ export async function POST(
     console.log(`Processing POST request for uploading document to finance ${id}`);
 
     // Forward the request to the backend API using the correct uploads endpoint
+    // Note: The endpoint should start with /uploads/ to trigger the special URL handling in handleApiRoute
     const response = await handleApiRoute(request, `/uploads/finances/${id}/document`, {
       timeout: 30000, // Increase timeout for uploads
       requireAuth: true
@@ -73,6 +79,7 @@ export async function PUT(
     console.log(`Processing PUT request for updating document for finance ${id}`);
 
     // Forward the request to the backend API using the correct uploads endpoint
+    // Note: The endpoint should start with /uploads/ to trigger the special URL handling in handleApiRoute
     const response = await handleApiRoute(request, `/uploads/finances/${id}/document`, {
       timeout: 30000, // Increase timeout for uploads
       requireAuth: true
@@ -130,6 +137,7 @@ export async function DELETE(
     console.log(`Processing DELETE request for document of finance ${id}`);
 
     // Forward the request to the backend API using the correct uploads endpoint
+    // Note: The endpoint should start with /uploads/ to trigger the special URL handling in handleApiRoute
     const response = await handleApiRoute(request, `/uploads/finances/${id}/document`, {
       timeout: 15000, // Increase timeout for deletes
       requireAuth: true

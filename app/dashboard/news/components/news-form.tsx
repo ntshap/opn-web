@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { RichTextEditor } from "@/components/ui/rich-text-editor"
+import { TipTapEditor } from "@/components/ui/tiptap-editor"
 import { Switch } from "@/components/ui/switch"
 import { Calendar as CalendarIcon, ImagePlus, Loader2, Trash, X } from "lucide-react"
 import { Calendar } from "@/components/ui/calendar"
@@ -121,12 +121,20 @@ export function NewsForm({ defaultValues, existingPhotos = [], newsId, onSubmit,
             <FormItem>
               <FormLabel>Deskripsi</FormLabel>
               <FormControl>
-                <RichTextEditor
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder="Masukkan deskripsi berita"
-                  className="min-h-32 bg-background"
-                />
+                <div
+                  className="border rounded-md"
+                  onClick={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
+                >
+                  <TipTapEditor
+                    content={field.value || ''}
+                    onChange={(html) => {
+                      field.onChange(html);
+                      console.log('TipTap content updated:', html);
+                    }}
+                    placeholder="Masukkan deskripsi berita"
+                  />
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>

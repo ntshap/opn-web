@@ -5,8 +5,9 @@ import { useQuery, useMutation, useQueryClient, type UseQueryOptions } from "@ta
 import axios from "axios"
 // Corrected type imports: Removed PaginatedResponse, replaced Attendee with EventAttendance
 // Added missing AttendanceFormData import
-import { eventApi, type Event, type EventFormData, type EventAttendance, type AttendanceFormData, extractErrorMessage } from "@/lib/api-service" // Updated path
+import { eventApi, memberApi, type Event, type EventFormData, type EventAttendance, type AttendanceFormData, extractErrorMessage } from "@/lib/api-service" // Updated path
 import { useToast } from "@/components/ui/use-toast"
+import { getSavedAttendanceData } from "@/utils/attendance-utils"
 
 // Query keys
 export const eventKeys = {
@@ -217,21 +218,49 @@ export function useEventAttendance(
       try {
         console.log('Fetching attendance for event ID:', eventId)
 
-        // Try to get attendance data from localStorage first
+        // Try to get attendance data from localStorage first using our utility function
         if (typeof window !== 'undefined') {
           try {
-            const savedAttendance = localStorage.getItem(`event_${eventId}_attendance`);
-            if (savedAttendance) {
-              const parsedAttendance = JSON.parse(savedAttendance);
-              console.log(`[useEventAttendance] Loaded saved attendance data from localStorage:`, parsedAttendance);
+            // Get saved attendance data using our utility function
+            const savedAttendanceData = getSavedAttendanceData(eventId);
+            console.log(`[useEventAttendance] Loaded ${savedAttendanceData.length} saved attendance records from localStorage:`, savedAttendanceData);
 
-              if (Array.isArray(parsedAttendance) && parsedAttendance.length > 0) {
-                // Convert the localStorage data to the expected EventAttendance format
-                return parsedAttendance.map(item => ({
+            if (savedAttendanceData.length > 0) {
+              // Try to get members data to get the actual names
+              try {
+                // Get members data from the API
+                const membersResponse = await memberApi.getMembers();
+
+                // Create a flat array of all members
+                const allMembers: Record<number, string> = {};
+                Object.values(membersResponse).forEach(members => {
+                  members.forEach(member => {
+                    if (member.id) {
+                      allMembers[member.id] = member.full_name || `Anggota ${member.id}`;
+                    }
+                  });
+                });
+
+                // Convert the localStorage data to the expected EventAttendance format with actual names
+                return savedAttendanceData.map(item => ({
                   id: item.member_id, // Use member_id as id for simplicity
                   event_id: Number(eventId),
                   member_id: item.member_id,
-                  member_name: `Member ${item.member_id}`, // We don't have the name in localStorage
+                  member_name: allMembers[item.member_id] || `Anggota ${item.member_id}`,
+                  status: item.status,
+                  notes: item.notes || "",
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                }));
+              } catch (membersError) {
+                console.error("[useEventAttendance] Error fetching members data:", membersError);
+
+                // Fallback to using generic names if we can't get the actual names
+                return savedAttendanceData.map(item => ({
+                  id: item.member_id,
+                  event_id: Number(eventId),
+                  member_id: item.member_id,
+                  member_name: `Anggota ${item.member_id}`,
                   status: item.status,
                   notes: item.notes || "",
                   created_at: new Date().toISOString(),

@@ -38,9 +38,10 @@ export async function handleApiRoute(
   options: {
     requireAuth?: boolean;
     timeout?: number;
+    overrideContentType?: string;
   } = {}
 ) {
-  const { requireAuth = true, timeout = 30000 } = options;
+  const { requireAuth = true, timeout = 30000, overrideContentType } = options;
 
   // Handle OPTIONS requests for CORS preflight
   if (request.method === 'OPTIONS') {
@@ -54,13 +55,19 @@ export async function handleApiRoute(
     // Always use real backend data, even in development mode
     // No mock responses in development mode
     const backendUrl = getBackendUrl();
+
+    // All endpoints, including uploads, should use the standard format
+    // Format should be: https://backend-project-pemuda.onrender.com/api/v1/uploads/finances/10/document
     const fullUrl = `${backendUrl}/api/v1${endpoint}`;
+
+    // Log the URL for debugging
+    console.log(`[handleApiRoute] Using standard URL format: ${fullUrl}`);
 
     console.log(`Forwarding ${method} request to: ${fullUrl}`);
 
     // Get headers
     const headers: HeadersInit = {
-      'Content-Type': request.headers.get('content-type') || 'application/json',
+      'Content-Type': overrideContentType || request.headers.get('content-type') || 'application/json',
     };
 
     // Add authorization header if required

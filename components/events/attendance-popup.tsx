@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { MemberAttendanceForm } from "./member-attendance-form"
 import { UserCheck, Save } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
+import { saveAttendanceData } from "@/utils/attendance-utils"
 
 interface AttendancePopupProps {
   eventId: string | number
@@ -60,12 +61,24 @@ export function AttendancePopup({
         }
       }
 
-      // If we have data to save, save it to localStorage
+      // If we have data to save, use our utility function to save it to localStorage
       if (dataToSave && dataToSave.length > 0) {
         try {
-          // Save to localStorage
-          localStorage.setItem(`event_${eventId}_attendance`, JSON.stringify(dataToSave));
-          console.log(`[AttendancePopup] Saved attendance data to localStorage:`, dataToSave);
+          // Save data using our utility function
+          const saveResult = saveAttendanceData(eventId, dataToSave);
+
+          if (!saveResult) {
+            console.error("[AttendancePopup] Failed to save attendance data");
+            toast({
+              title: "Error",
+              description: "Gagal menyimpan data kehadiran ke penyimpanan lokal",
+              variant: "destructive"
+            });
+            setIsSaving(false);
+            return;
+          }
+
+          console.log(`[AttendancePopup] Successfully saved attendance data to localStorage`);
 
           // Show success toast
           toast({
@@ -79,6 +92,11 @@ export function AttendancePopup({
           }, 1000);
         } catch (storageError) {
           console.error("[AttendancePopup] Error saving to localStorage:", storageError);
+          toast({
+            title: "Error",
+            description: "Gagal menyimpan data kehadiran ke penyimpanan lokal",
+            variant: "destructive"
+          });
           throw storageError;
         }
       } else {

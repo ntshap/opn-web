@@ -7,13 +7,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 // Badge styling is now handled via CSS classes
-import { PlusCircle, Edit, Trash2, ArrowUp, ArrowDown } from "lucide-react"
+import { PlusCircle, Edit, Trash2, ArrowUp, ArrowDown, Image, Download } from "lucide-react"
 import { TransactionForm } from "./components/transaction-form"
 import { useFinanceHistory, useFinanceMutations, type FinanceData, type FinanceTransaction } from "@/hooks/useFinance"
 import { formatRupiah } from "@/lib/utils"
 import { format } from "date-fns"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import { FinanceDocumentGallery } from "./components/finance-document-gallery"
+import { TipTapContent } from "@/components/ui/tiptap-editor"
 import "./finance.css"
 
 // Local interface for displaying transactions in the UI
@@ -35,6 +37,9 @@ export default function FinancePage() {
   const [transactionToEdit, setTransactionToEdit] = useState<Transaction | null>(null)
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false)
   const [transactionToDelete, setTransactionToDelete] = useState<number | null>(null)
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false)
+  const [selectedFinanceId, setSelectedFinanceId] = useState<number | null>(null)
+  const [selectedDocumentUrl, setSelectedDocumentUrl] = useState<string | null>(null)
 
   const { data: financeSummary, isLoading } = useFinanceData();
   const {
@@ -110,6 +115,12 @@ export default function FinancePage() {
     setIsDeleteAlertOpen(true)
   }
 
+  const openDocumentGallery = (transaction: Transaction) => {
+    setSelectedFinanceId(transaction.id)
+    setSelectedDocumentUrl(transaction.document_url)
+    setIsGalleryOpen(true)
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -129,7 +140,14 @@ export default function FinancePage() {
               Tambah Transaksi
             </button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent
+            onPointerDownOutside={(e) => {
+              // Prevent closing when clicking inside the editor
+              if (e.target && (e.target as HTMLElement).closest('.tiptap')) {
+                e.preventDefault();
+              }
+            }}
+          >
             <DialogHeader>
               <DialogTitle>Tambah Transaksi Baru</DialogTitle>
             </DialogHeader>
@@ -208,6 +226,7 @@ export default function FinancePage() {
                   <TableHead>Deskripsi</TableHead>
                   <TableHead>Kategori</TableHead>
                   <TableHead className="text-right">Jumlah</TableHead>
+                  <TableHead>Dokumen</TableHead>
                   <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
@@ -215,7 +234,11 @@ export default function FinancePage() {
                 {transactions.map((transaction: Transaction) => (
                   <TableRow key={transaction.id}>
                     <TableCell>{format(new Date(transaction.date), "dd MMM yyyy")}</TableCell>
-                    <TableCell>{transaction.description}</TableCell>
+                    <TableCell>
+                      <div className="max-w-[200px] overflow-hidden">
+                        <TipTapContent content={transaction.description} />
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <button
                         className="py-1 px-3 rounded flex items-center"
@@ -240,20 +263,43 @@ export default function FinancePage() {
                         {formatRupiah(Number(transaction.amount))}
                       </span>
                     </TableCell>
+                    <TableCell>
+                      {transaction.document_url ? (
+                        <button
+                          onClick={() => openDocumentGallery(transaction)}
+                          className="text-blue-600 hover:underline flex items-center"
+                        >
+                          <Download className="h-4 w-4 mr-1" /> Lihat
+                        </button>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-2">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => openEditDialog(transaction)}
+                          title="Edit Transaksi"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
+                          className="text-blue-600 hover:text-blue-700"
+                          onClick={() => openDocumentGallery(transaction)}
+                          title={transaction.document_url ? "Lihat Bukti Transaksi" : "Unggah Bukti Transaksi"}
+                        >
+                          <Image className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           className="text-red-500 hover:text-red-600"
                           onClick={() => openDeleteAlert(transaction.id)}
+                          title="Hapus Transaksi"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -269,7 +315,14 @@ export default function FinancePage() {
 
       {/* Edit Transaction Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent
+          onPointerDownOutside={(e) => {
+            // Prevent closing when clicking inside the editor
+            if (e.target && (e.target as HTMLElement).closest('.tiptap')) {
+              e.preventDefault();
+            }
+          }}
+        >
           <DialogHeader>
             <DialogTitle>Edit Transaksi</DialogTitle>
           </DialogHeader>
@@ -307,6 +360,20 @@ export default function FinancePage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Document Gallery */}
+      {selectedFinanceId && (
+        <FinanceDocumentGallery
+          open={isGalleryOpen}
+          onOpenChange={setIsGalleryOpen}
+          financeId={selectedFinanceId}
+          documentUrl={selectedDocumentUrl}
+          onSuccess={() => {
+            // Refresh the data after successful upload or delete
+            refetch()
+          }}
+        />
+      )}
     </div>
   )
 }

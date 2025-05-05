@@ -49,7 +49,6 @@ export function MemberCard({ member, onEdit, onDelete }: MemberCardProps) {
         </Avatar>
         <div className="text-center">
           <h3 className="font-medium text-lg">{member.full_name === 'string' ? 'Nama Anggota' : member.full_name}</h3>
-          <p className="text-sm text-muted-foreground">{member.position === 'string' ? 'Tidak ada posisi' : (member.position || 'Tidak ada posisi')}</p>
         </div>
       </CardHeader>
       <CardContent className="p-4 pt-2 text-center">
@@ -63,7 +62,13 @@ export function MemberCard({ member, onEdit, onDelete }: MemberCardProps) {
             fontWeight: 400
           }}
         >
-          {member.division === 'string' ? 'Tidak ada divisi' : (member.division || 'Tidak ada divisi')}
+          {member.division === 'string' ? 'Tidak ada divisi' :
+           member.division === 'divisi agama' ? 'Divisi Agama' :
+           member.division === 'divisi sosial' ? 'Divisi Sosial' :
+           member.division === 'divisi lingkungan' ? 'Divisi Lingkungan' :
+           member.division === 'divisi perlengkapan' ? 'Divisi Perlengkapan' :
+           member.division === 'divisi media' ? 'Divisi Media' :
+           (member.division || 'Tidak ada divisi')}
         </button>
       </CardContent>
       <CardFooter className="p-4 pt-0 flex justify-between">

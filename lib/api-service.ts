@@ -378,7 +378,8 @@ export const eventApi = {
 
       // Validate the data before sending to the API
       const validatedData = attendanceData.map(record => {
-        const validStatus = ["Hadir", "Izin", "Alfa", "Tidak Hadir"].includes(record.status) ? (record.status === "Tidak Hadir" ? "Alfa" : record.status) : "Hadir";
+        // Only allow the three valid status values from the database schema: Hadir, Izin, Alfa
+        const validStatus = ["Hadir", "Izin", "Alfa"].includes(record.status) ? record.status : "Hadir";
         return {
           member_id: record.member_id,
           status: validStatus,
@@ -1109,14 +1110,36 @@ export const meetingMinutesApi = {
   // Update meeting minutes
   updateMeetingMinutes: async (id: number | string, data: MeetingMinutesFormData): Promise<MeetingMinutes> => {
     try {
-      const formattedData = {
-        title: data.title, description: data.description, date: data.date,
-        document_url: data.document_url || '', event_id: Number(data.event_id)
-      };
-      const response = await withRetry(() =>
-        apiClient.put<MeetingMinutes>(`/meeting-minutes/${id}/`, formattedData) // Use imported apiClient
-      );
-      return response.data;
+      // According to the API documentation, the PUT endpoint expects a string
+      // Let's use the description field as the string content
+      const stringContent = data.description || '';
+
+      console.log(`Updating meeting minutes ${id} with string content`);
+
+      // Use fetch API directly instead of axios
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
+      // Make the request to our Next.js API route
+      const response = await fetch(`/api/v1/meeting-minutes/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'text/plain',
+          'Authorization': `Bearer ${token}`
+        },
+        body: stringContent
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Error response from server: ${response.status} ${response.statusText}`, errorText);
+        throw new Error(`Failed to update meeting minutes: ${response.status} ${response.statusText}`);
+      }
+
+      const responseData = await response.json();
+      return responseData;
     } catch (error) {
       console.error(`Error updating meeting minutes with ID ${id}:`, error);
       throw error;
@@ -1126,8 +1149,9 @@ export const meetingMinutesApi = {
   // Delete meeting minutes
   deleteMeetingMinutes: async (id: number | string): Promise<void> => {
     try {
+      // Remove trailing slash to match backend API expectations
       await withRetry(() =>
-        apiClient.delete(`/meeting-minutes/${id}/`) // Use imported apiClient
+        apiClient.delete(`/meeting-minutes/${id}`) // Use imported apiClient without trailing slash
       );
     } catch (error) {
       console.error(`Error deleting meeting minutes with ID ${id}:`, error);
@@ -1508,31 +1532,20 @@ export const memberApi = {
     try {
       console.log('[API] Creating or updating member biodata');
 
-      // Format the birth_date to ensure it's in the correct format (YYYY-MM-DD)
-      let formattedBirthDate = memberData.member_info.birth_date;
-      if (formattedBirthDate) {
-        // If it's already a string in YYYY-MM-DD format, keep it as is
-        // Otherwise, ensure it's properly formatted
-        if (formattedBirthDate.includes('T')) {
-          formattedBirthDate = formattedBirthDate.split('T')[0];
-        }
-      }
-
       // Create biodata object exactly matching the API schema - ONLY include fields in the schema
       const biodataData = {
         full_name: memberData.member_info.full_name,
         email: memberData.member_info.email,
-        phone_number: memberData.member_info.phone_number || '',
+        phone_number: memberData.member_info.phone_number,
         division: memberData.member_info.division,
-        birth_place: memberData.member_info.birth_place || '',
-        birth_date: formattedBirthDate || '',
-        address: memberData.member_info.address || '',
+        birth_place: memberData.member_info.birth_place,
+        birth_date: memberData.member_info.birth_date,
+        address: memberData.member_info.address,
         photo_url: ''
       };
 
-      // DO NOT add position field - it's not in the API schema
-      // Store position separately for our internal use
-      const position = memberData.member_info.position;
+      // Log the data being sent to the API
+      console.log('[API] Member data being sent:', biodataData);
 
       // First, check if the user already has biodata by fetching their profile
       try {
@@ -1649,38 +1662,17 @@ export const memberApi = {
   // Create biodata for current user
   createBiodata: async (biodataData: BiodataFormData): Promise<MemberInfo> => {
     try {
-      // Store position separately if it exists (for internal use only)
-      const position = (biodataData as any).position;
-
       // Create a new object with only the fields expected by the API
       const apiData = {
         full_name: biodataData.full_name,
-        email: biodataData.email || '',
-        phone_number: biodataData.phone_number || '',
+        email: biodataData.email,
+        phone_number: biodataData.phone_number,
         division: biodataData.division,
-        birth_place: biodataData.birth_place || '',
-        address: biodataData.address || '',
-        photo_url: biodataData.photo_url || ''
+        birth_place: biodataData.birth_place,
+        address: biodataData.address,
+        photo_url: biodataData.photo_url,
+        birth_date: biodataData.birth_date
       };
-
-      // Format the birth_date to ensure it's in the correct format (YYYY-MM-DD)
-      if (biodataData.birth_date) {
-        // If it's a Date object, convert to YYYY-MM-DD string
-        if (biodataData.birth_date instanceof Date) {
-          (apiData as any).birth_date = biodataData.birth_date.toISOString().split('T')[0];
-        }
-        // If it's a string with a time component, remove the time part
-        else if (typeof biodataData.birth_date === 'string') {
-          if (biodataData.birth_date.includes('T')) {
-            (apiData as any).birth_date = biodataData.birth_date.split('T')[0];
-          } else {
-            (apiData as any).birth_date = biodataData.birth_date;
-          }
-        }
-      } else {
-        // If no birth_date is provided, use an empty string
-        (apiData as any).birth_date = '';
-      }
 
       console.log('[API] Creating biodata with formatted data:', apiData);
       console.log('[API] Request payload:', JSON.stringify(apiData));
@@ -1690,11 +1682,8 @@ export const memberApi = {
       )
       console.log('[API] Successfully created biodata');
 
-      // If we have a position stored, add it to the response data for internal use
+      // Return the response data
       const responseData = response.data;
-      if (position) {
-        (responseData as any).position = position;
-      }
 
       return responseData;
     } catch (error) {
@@ -1719,39 +1708,19 @@ export const memberApi = {
   // Update biodata for current user
   updateBiodata: async (biodataData: BiodataFormData): Promise<MemberInfo> => {
     try {
-      // Store position separately if it exists (for internal use only)
-      const position = (biodataData as any).position;
-
       // Create a new object with only the fields expected by the API
       const apiData = {
         full_name: biodataData.full_name,
-        email: biodataData.email || '',
-        phone_number: biodataData.phone_number || '',
+        email: biodataData.email,
+        phone_number: biodataData.phone_number,
         division: biodataData.division,
-        birth_place: biodataData.birth_place || '',
-        address: biodataData.address || '',
-        photo_url: biodataData.photo_url || ''
+        birth_place: biodataData.birth_place,
+        address: biodataData.address,
+        photo_url: biodataData.photo_url,
+        birth_date: biodataData.birth_date
       };
 
-      // Format the birth_date to ensure it's in the correct format (YYYY-MM-DD)
-      if (biodataData.birth_date) {
-        // If it's a Date object, convert to YYYY-MM-DD string
-        if (biodataData.birth_date instanceof Date) {
-          (apiData as any).birth_date = biodataData.birth_date.toISOString().split('T')[0];
-        }
-        // If it's a string with a time component, remove the time part
-        else if (typeof biodataData.birth_date === 'string') {
-          if (biodataData.birth_date.includes('T')) {
-            (apiData as any).birth_date = biodataData.birth_date.split('T')[0];
-          } else {
-            (apiData as any).birth_date = biodataData.birth_date;
-          }
-        }
-      } else {
-        // If no birth_date is provided, use an empty string
-        (apiData as any).birth_date = '';
-      }
-
+      // Log the API data for debugging
       console.log('[API] Updating biodata with formatted data:', apiData);
       console.log('[API] Request payload:', JSON.stringify(apiData));
 
@@ -1760,11 +1729,8 @@ export const memberApi = {
       )
       console.log('[API] Successfully updated biodata');
 
-      // If we have a position stored, add it to the response data for internal use
+      // Return the response data
       const responseData = response.data;
-      if (position) {
-        (responseData as any).position = position;
-      }
 
       return responseData;
     } catch (error) {
@@ -1988,7 +1954,6 @@ export interface Member {
   role?: string
   full_name?: string
   division?: string
-  position?: string
   email?: string
   phone_number?: string
   birth_date?: string
@@ -2005,26 +1970,25 @@ export interface MemberFormData {
   member_info: {
     full_name: string
     division: string
-    position: string
-    email?: string
-    phone_number?: string
-    birth_date?: string // Expecting YYYY-MM-DD string
-    birth_place?: string
-    address?: string
-    photo_url?: string
+    email: string
+    phone_number: string
+    birth_date: string
+    birth_place: string
+    address: string
+    photo_url: string
     age?: number
   }
 }
 
 export interface BiodataFormData {
   full_name: string
-  email?: string
-  phone_number?: string
+  email: string
+  phone_number: string
   division: string
-  birth_place?: string
-  birth_date?: string | Date
-  address?: string
-  photo_url?: string
+  birth_place: string
+  birth_date: string
+  address: string
+  photo_url: string
 }
 
 export interface MemberResponse {

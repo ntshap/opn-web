@@ -381,3 +381,30 @@
 .dark .prose div[dangerouslySetInnerHTML] blockquote {
   border-left-color: #4b5563;
 }
+
+/* Meeting Minutes Content Styling */
+.meeting-minutes-content ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+  counter-reset: item;
+}
+
+.meeting-minutes-content ol > li {
+  display: block;
+  position: relative;
+  margin-bottom: 0.5rem;
+}
+
+.meeting-minutes-content ol > li:before {
+  content: counter(item) ". ";
+  counter-increment: item;
+  position: absolute;
+  left: -1.5rem;
+  font-weight: 500;
+}
+
+.meeting-minutes-content ol > li > p {
+  margin: 0;
+  display: inline;
+}

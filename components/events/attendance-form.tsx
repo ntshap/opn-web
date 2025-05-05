@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Check, Edit } from "lucide-react"
 import { useAttendanceMutations } from "@/hooks/useEvents"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { getSavedAttendanceData, saveAttendanceData, updateAttendanceData } from "@/utils/attendance-utils"
 
 // This interface represents an existing attendance record
 interface Attendee {
@@ -49,39 +50,32 @@ export function AttendanceForm({ eventId, attendees: initialAttendees = [], onRe
     // Start with the initial attendees from props
     let attendeesList = Array.isArray(initialAttendees) ? initialAttendees : [];
 
-    // Try to load saved attendance data from localStorage
-    try {
-      const savedAttendance = localStorage.getItem(`event_${eventId}_attendance`);
-      if (savedAttendance) {
-        const parsedAttendance = JSON.parse(savedAttendance);
-        console.log(`[AttendanceForm] Loaded saved attendance data from localStorage:`, parsedAttendance);
+    // Load saved attendance data from localStorage using our utility function
+    const savedAttendanceData = getSavedAttendanceData(eventId);
+    console.log(`[AttendanceForm] Loaded ${savedAttendanceData.length} saved attendance records from localStorage:`, savedAttendanceData);
 
-        // If we have saved attendance data, update the attendees list
-        if (parsedAttendance && Array.isArray(parsedAttendance) && parsedAttendance.length > 0) {
-          // Create a map of member_id to saved attendance data
-          const savedAttendanceMap = new Map();
-          parsedAttendance.forEach(item => {
-            if (item && item.member_id) {
-              savedAttendanceMap.set(item.member_id, item);
-            }
-          });
-
-          // Update attendees with saved data
-          attendeesList = attendeesList.map(attendee => {
-            const savedData = savedAttendanceMap.get(attendee.member_id);
-            if (savedData) {
-              return {
-                ...attendee,
-                status: savedData.status || attendee.status,
-                notes: savedData.notes || attendee.notes
-              };
-            }
-            return attendee;
-          });
+    // If we have saved attendance data, update the attendees list
+    if (savedAttendanceData.length > 0) {
+      // Create a map of member_id to saved attendance data
+      const savedAttendanceMap = new Map();
+      savedAttendanceData.forEach(item => {
+        if (item && item.member_id) {
+          savedAttendanceMap.set(item.member_id, item);
         }
-      }
-    } catch (error) {
-      console.error("[AttendanceForm] Error loading saved attendance data:", error);
+      });
+
+      // Update attendees with saved data
+      attendeesList = attendeesList.map(attendee => {
+        const savedData = savedAttendanceMap.get(attendee.member_id);
+        if (savedData) {
+          return {
+            ...attendee,
+            status: savedData.status || attendee.status,
+            notes: savedData.notes || attendee.notes
+          };
+        }
+        return attendee;
+      });
     }
 
     setAttendees(attendeesList);
@@ -127,8 +121,8 @@ export function AttendanceForm({ eventId, attendees: initialAttendees = [], onRe
 
     try {
       // Format the data for the API and ensure status is one of the allowed values
-      const status = attendanceForm.status === "Hadir" ? "Hadir" :
-                    attendanceForm.status === "Izin" ? "Izin" : "Alfa";
+      // Only allow the three valid status values from the database schema: Hadir, Izin, Alfa
+      const status = ["Hadir", "Izin", "Alfa"].includes(attendanceForm.status) ? attendanceForm.status : "Hadir";
 
       const attendanceData = {
         member_id: attendee.member_id,
@@ -146,28 +140,17 @@ export function AttendanceForm({ eventId, attendees: initialAttendees = [], onRe
       );
       setAttendees(updatedAttendees);
 
-      // Save to localStorage
+      // Save to localStorage using our utility function
       try {
-        // Get existing data from localStorage
-        const savedAttendance = localStorage.getItem(`event_${eventId}_attendance`);
-        let savedData = [];
+        // Update the attendance data for this member
+        const updateResult = updateAttendanceData(eventId, [attendanceData]);
 
-        if (savedAttendance) {
-          savedData = JSON.parse(savedAttendance);
+        if (!updateResult) {
+          console.error("[AttendanceForm] Failed to update attendance data");
+          throw new Error("Failed to update attendance data");
         }
 
-        // Update or add the new attendance data
-        const existingIndex = savedData.findIndex((item: any) => item.member_id === attendee.member_id);
-
-        if (existingIndex >= 0) {
-          savedData[existingIndex] = attendanceData;
-        } else {
-          savedData.push(attendanceData);
-        }
-
-        // Save back to localStorage
-        localStorage.setItem(`event_${eventId}_attendance`, JSON.stringify(savedData));
-        console.log(`[AttendanceForm] Saved attendance data to localStorage`);
+        console.log(`[AttendanceForm] Successfully updated attendance data in localStorage`);
       } catch (storageError) {
         console.error("[AttendanceForm] Error saving to localStorage:", storageError);
       }
@@ -245,26 +228,17 @@ export function AttendanceForm({ eventId, attendees: initialAttendees = [], onRe
                       });
                       setAttendees(updatedAttendees);
 
-                      // Save to localStorage
+                      // Save to localStorage using our utility function
                       try {
-                        // Get existing data from localStorage
-                        const savedAttendance = localStorage.getItem(`event_${eventId}_attendance`);
-                        let savedData = savedAttendance ? JSON.parse(savedAttendance) : [];
+                        // Update the attendance data for all members in bulk
+                        const updateResult = updateAttendanceData(eventId, updateData);
 
-                        // Update or add each attendance record
-                        updateData.forEach((data: any) => {
-                          const existingIndex = savedData.findIndex((item: any) => item.member_id === data.member_id);
+                        if (!updateResult) {
+                          console.error("[AttendanceForm] Failed to update bulk attendance data");
+                          throw new Error("Failed to update bulk attendance data");
+                        }
 
-                          if (existingIndex >= 0) {
-                            savedData[existingIndex] = data;
-                          } else {
-                            savedData.push(data);
-                          }
-                        });
-
-                        // Save back to localStorage
-                        localStorage.setItem(`event_${eventId}_attendance`, JSON.stringify(savedData));
-                        console.log(`[AttendanceForm] Saved bulk attendance data to localStorage`);
+                        console.log(`[AttendanceForm] Successfully updated bulk attendance data in localStorage`);
                       } catch (storageError) {
                         console.error("[AttendanceForm] Error saving bulk data to localStorage:", storageError);
                       }

@@ -17,9 +17,24 @@ export const apiClient = axios.create({
   }
 })
 
+// Create a special Axios instance for uploads with a longer timeout
+export const uploadsApiClient = axios.create({
+  // Use the standard backend API URL for all endpoints
+  baseURL: `${API_CONFIG.BACKEND_URL}/api/v1`, // Standard format for all endpoints
+  headers: {
+    "Content-Type": "multipart/form-data",
+  },
+  timeout: 30000, // 30 seconds timeout for uploads
+  // Don't encode URLs that are already encoded
+  paramsSerializer: {
+    encode: (value) => value // Don't encode URL parameters
+  }
+})
+
 // Log the base URL in development
 if (process.env.NODE_ENV === 'development') {
   console.log(`[ApiClient] Initialized with baseURL: ${apiClient.defaults.baseURL}`);
+  console.log(`[UploadsApiClient] Initialized with baseURL: ${uploadsApiClient.defaults.baseURL}`);
 }
 
 // Add request interceptor to handle authentication
@@ -196,6 +211,99 @@ apiClient.interceptors.response.use(
     }
 
     // For other errors, just reject
+    return Promise.reject(error)
+  }
+)
+
+// Add the same interceptors to the uploadsApiClient
+uploadsApiClient.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    // Get token from auth-utils
+    const token = typeof window !== "undefined" ? getAuthToken() : null
+
+    // If token exists, add it to the headers
+    if (token && config.headers) {
+      config.headers.Authorization = token
+      console.log(`[UploadsApiClient] Request to ${config.url}: Added Authorization header`);
+    } else {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`[UploadsApiClient] Request to ${config.url}: No Authorization header added - token is ${token ? 'present but headers missing' : 'missing'}`);
+      }
+    }
+
+    // Log the full request details in development
+    if (process.env.NODE_ENV === "development") {
+      console.log(`[UploadsApiClient] Request details:`, {
+        method: config.method?.toUpperCase(),
+        url: config.url,
+        baseURL: config.baseURL,
+        headers: config.headers,
+        params: config.params,
+        data: config.data ? 'FormData (not shown)' : undefined
+      });
+    }
+
+    return config
+  },
+  (error) => {
+    console.error('[UploadsApiClient] Error in request interceptor:', error);
+    return Promise.reject(error)
+  }
+)
+
+// Add response interceptor for debugging and error handling
+uploadsApiClient.interceptors.response.use(
+  (response: AxiosResponse) => {
+    // Log successful responses in development
+    if (process.env.NODE_ENV === "development") {
+      console.log(`[UploadsApiClient] Response [${response.config.method?.toUpperCase()}] ${response.config.url}:`, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        data: 'Response data not shown (likely binary)'
+      })
+    }
+    return response
+  },
+  async (error: unknown) => {
+    // Only log in development mode
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[UploadsApiClient] Response interceptor caught an error:', error);
+    }
+
+    // Handle canceled requests gracefully
+    if (isCancel(error)) {
+      console.log('Upload request canceled:', (error as Error).message)
+      return Promise.reject({
+        isCanceled: true,
+        message: 'Upload request was canceled',
+        originalError: error
+      })
+    }
+
+    // Log errors for debugging
+    if (axios.isAxiosError(error)) {
+      console.error(`UploadsApiClient Error [${error.config?.method?.toUpperCase()}] ${error.config?.url}:`, {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        headers: error.config?.headers,
+        baseURL: error.config?.baseURL,
+      })
+    } else {
+      console.error('Non-Axios error in UploadsApiClient:', error)
+    }
+
+    // Handle 401 Unauthorized - Redirect to login
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      console.error('Unauthorized upload request. Redirecting to login.')
+      removeAuthTokens()
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+        localStorage.setItem('redirectAfterLogin', window.location.pathname)
+        window.location.href = "/login"
+      }
+    }
+
     return Promise.reject(error)
   }
 )
