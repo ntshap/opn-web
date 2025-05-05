@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
         const url = new URL(normalizedPath);
 
         // Check if this is a URL to our backend
-        if (url.hostname === 'backend-project-pemuda.onrender.com') {
+        if (url.hostname === 'beopn.mysesa.site') {
           console.log(`[Direct Image] Detected backend URL, extracting path: ${url.pathname}`);
           normalizedPath = url.pathname;
         } else {
@@ -99,10 +99,10 @@ export async function GET(request: NextRequest) {
         console.log(`[Direct Image] Using URL directly: ${fullUrl}`);
 
         // Check if the URL contains the backend URL twice (a common error)
-        if (fullUrl.includes('backend-project-pemuda.onrender.com/backend-project-pemuda.onrender.com')) {
+        if (fullUrl.includes('beopn.mysesa.site/beopn.mysesa.site')) {
           console.warn(`[Direct Image] Warning: URL contains backend URL twice: ${fullUrl}`);
           // Fix the URL by removing the duplicate backend URL
-          fullUrl = fullUrl.replace('backend-project-pemuda.onrender.com/backend-project-pemuda.onrender.com', 'backend-project-pemuda.onrender.com');
+          fullUrl = fullUrl.replace('beopn.mysesa.site/beopn.mysesa.site', 'beopn.mysesa.site');
           console.log(`[Direct Image] Fixed URL: ${fullUrl}`);
         }
       } catch (e) {

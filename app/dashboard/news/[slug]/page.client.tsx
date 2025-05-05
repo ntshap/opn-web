@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { formatImageUrl } from "@/lib/image-utils"
 import { SecureImage } from "@/components/shared/SecureImage"
 import { NewsForm } from "../components/news-form"
-import { PhotoTest } from "../components/photo-test"
+import { PhotoUpload } from "../components/photo-upload"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
 import { Badge } from "@/components/ui/badge"
@@ -25,7 +25,7 @@ export default function NewsDetailPageClient({ slug }: { slug: string }) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
   // Fetch news item
-  const { data: newsItem, isLoading, error, refetch } = useNewsItem(newsId)
+  const { data: newsItem, isLoading, error, refetch, isFetching } = useNewsItem(newsId)
   const { updateNews, deleteNews, uploadNewsPhoto } = useNewsMutations()
 
   // Debug: Log the news item data when it's available
@@ -276,6 +276,13 @@ export default function NewsDetailPageClient({ slug }: { slug: string }) {
               console.log('Photo URL:', newsItem.photos[0].photo_url)
             }
 
+            {/* Show loading overlay when fetching */}
+            {isFetching && (
+              <div className="absolute inset-0 bg-black/20 z-10 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+              </div>
+            )}
+
             {/* Use our new SecureImage component */}
             <SecureImage
               src={newsItem.photos && newsItem.photos.length > 0 ? newsItem.photos[0].photo_url : ''}
@@ -292,8 +299,14 @@ export default function NewsDetailPageClient({ slug }: { slug: string }) {
             <TipTapContent content={newsItem.description} />
           </div>
 
-          {/* Photo upload test component */}
-          <PhotoTest newsId={newsId} />
+          {/* Photo upload component with refresh callback */}
+          <PhotoUpload
+            newsId={newsId}
+            onPhotoUploaded={() => {
+              console.log('Photo uploaded, refreshing news data')
+              refetch()
+            }}
+          />
         </CardContent>
 
         <CardFooter className="flex justify-between border-t pt-6">

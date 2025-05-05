@@ -69,7 +69,7 @@ export function formatImageUrl(url: string | null | undefined, contextId?: strin
       }
 
       // Preserve double slashes as required by the backend
-      // The backend expects URLs like https://backend-project-pemuda.onrender.com//uploads/...
+      // The backend expects URLs like https://beopn.mysesa.site//uploads/...
       // Always ensure we have double slashes after the domain
       const fullUrl = `${baseUrl}//uploads/${pathAfterUploads}`;
 
@@ -169,9 +169,9 @@ export function getAuthenticatedImageUrl(url: string | null | undefined): string
   }
 
   // Ensure the URL has the correct format with double slashes after domain
-  if (fullUrl.includes('backend-project-pemuda.onrender.com/') && !fullUrl.includes('backend-project-pemuda.onrender.com//')) {
+  if (fullUrl.includes('beopn.mysesa.site/') && !fullUrl.includes('beopn.mysesa.site//')) {
     // Fix the URL to have double slashes
-    fullUrl = fullUrl.replace('backend-project-pemuda.onrender.com/', 'backend-project-pemuda.onrender.com//');
+    fullUrl = fullUrl.replace('beopn.mysesa.site/', 'beopn.mysesa.site//');
     console.log(`[getAuthenticatedImageUrl] Fixed URL to have double slashes: ${fullUrl}`);
   }
 

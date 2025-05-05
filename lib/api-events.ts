@@ -30,7 +30,7 @@ export const eventApi = {
       console.log(`[API] Fetching events with params:`, params);
 
       const response = await withRetry(() =>
-        apiClient.get<Event[]>(`/event?${queryParams.toString()}`, { signal })
+        apiClient.get<Event[]>(`/events?${queryParams.toString()}`, { signal })
       );
 
       console.log(`[API] Successfully fetched ${response.data.length} events`);

@@ -2,21 +2,16 @@
 const nextConfig = {
   reactStrictMode: false,
 
-  // Configure API rewrites
+  // No API rewrites - direct connection to backend
   async rewrites() {
-    return [
-      {
-        source: '/api/v1/:path*',
-        destination: 'https://backend-project-pemuda.onrender.com/api/v1/:path*',
-      },
-    ];
+    return [];
   },
 
   images: {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'backend-project-pemuda.onrender.com',
+        hostname: 'beopn.mysesa.site',
         pathname: '/**',
       },
       {
@@ -26,7 +21,7 @@ const nextConfig = {
       },
     ],
     unoptimized: true,
-    domains: ['backend-project-pemuda.onrender.com', 'ui-avatars.com'],
+    domains: ['beopn.mysesa.site', 'ui-avatars.com'],
   },
 
   // Add headers to allow CORS for images

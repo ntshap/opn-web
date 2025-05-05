@@ -52,24 +52,32 @@ export function MemberCard({ member, onEdit, onDelete }: MemberCardProps) {
         </div>
       </CardHeader>
       <CardContent className="p-4 pt-2 text-center">
-        <button
-          className="py-1 px-3 rounded mb-2"
-          style={{
-            backgroundColor: "#f3f4f6",
-            border: "none",
-            boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
-            color: "#4b5563",
-            fontWeight: 400
-          }}
-        >
-          {member.division === 'string' ? 'Tidak ada divisi' :
-           member.division === 'divisi agama' ? 'Divisi Agama' :
-           member.division === 'divisi sosial' ? 'Divisi Sosial' :
-           member.division === 'divisi lingkungan' ? 'Divisi Lingkungan' :
-           member.division === 'divisi perlengkapan' ? 'Divisi Perlengkapan' :
-           member.division === 'divisi media' ? 'Divisi Media' :
-           (member.division || 'Tidak ada divisi')}
-        </button>
+        <div className="flex flex-col items-center gap-2">
+          <button
+            className="py-1 px-3 rounded"
+            style={{
+              backgroundColor: "#f3f4f6",
+              border: "none",
+              boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
+              color: "#4b5563",
+              fontWeight: 400
+            }}
+          >
+            {member.division === 'string' ? 'Tidak ada divisi' :
+             member.division === 'divisi agama' ? 'Divisi Agama' :
+             member.division === 'divisi sosial' ? 'Divisi Sosial' :
+             member.division === 'divisi lingkungan' ? 'Divisi Lingkungan' :
+             member.division === 'divisi perlengkapan' ? 'Divisi Perlengkapan' :
+             member.division === 'divisi media' ? 'Divisi Media' :
+             (member.division || 'Tidak ada divisi')}
+          </button>
+
+          {member.age && member.age > 0 && (
+            <span className="text-sm text-gray-500">
+              Umur: {member.age} tahun
+            </span>
+          )}
+        </div>
       </CardContent>
       <CardFooter className="p-4 pt-0 flex justify-between">
         <Button variant="outline" size="sm" onClick={() => onEdit(member)}>

@@ -30,7 +30,7 @@ export class ApiClient {
     console.log('API Client initializing with URL:', API_CONFIG.BASE_URL);
 
     this.client = axios.create({
-      baseURL: API_CONFIG.BASE_URL,
+      baseURL: API_CONFIG.BASE_URL, // Direct connection to backend
       timeout: API_CONFIG.TIMEOUT.FINANCE, // Using longer timeout for better reliability
       headers: {
         'Content-Type': 'application/json',

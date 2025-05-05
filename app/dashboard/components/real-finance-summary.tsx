@@ -38,7 +38,7 @@ export function RealFinanceSummary() {
         if (token) {
           try {
             // Fetch finance summary directly from the backend API
-            const response = await fetch('https://backend-project-pemuda.onrender.com/api/v1/finance/summary', {
+            const response = await fetch('https://beopn.mysesa.site/api/v1/finance/summary', {
               method: 'GET',
               headers: {
                 'Content-Type': 'application/json',

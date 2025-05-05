@@ -11,7 +11,7 @@ To ensure your application connects to the backend API correctly, you need to se
 
 | Name | Value | Description |
 |------|-------|-------------|
-| `NEXT_PUBLIC_API_URL` | `https://backend-project-pemuda.onrender.com/api/v1` | The base URL for your backend API |
+| `NEXT_PUBLIC_API_URL` | `https://beopn.mysesa.site/api/v1` | The base URL for your backend API |
 | `NEXT_PUBLIC_USE_FALLBACK_DATA` | `false` | Set to `false` to ensure real data is used |
 
 5. Click "Save" to apply the changes

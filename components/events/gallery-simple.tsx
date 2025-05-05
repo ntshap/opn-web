@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Upload, ImageIcon, AlertCircle, Loader2, Download, Trash2 } from "lucide-react"
@@ -10,9 +10,10 @@ import { fileApi } from "@/lib/api-files"
 import { formatImageUrl, formatDate } from "@/lib/image-utils"
 import { UploadPhotosDirect } from "./upload-photos-direct"
 import { ProtectedImage } from "@/components/shared/ProtectedImage"
+import eventBus, { EVENTS } from "@/lib/event-bus"
 
 // Import the API base URL for image fallback
-const API_BASE_URL = "https://backend-project-pemuda.onrender.com"
+const API_BASE_URL = "https://beopn.mysesa.site"
 
 interface GallerySimpleProps {
   eventId: string | number
@@ -26,6 +27,7 @@ export function GallerySimple({ eventId }: GallerySimpleProps) {
 
   // Memoize the fetchPhotos function to prevent infinite loops
   const fetchPhotos = useCallback(async () => {
+    console.log(`[GallerySimple] fetchPhotos called for event ${eventId}`);
     setLoading(true);
     setError(null);
 
@@ -122,8 +124,49 @@ export function GallerySimple({ eventId }: GallerySimpleProps) {
     }
   }, [eventId]);
 
-  // Listen for changes to the lastPhotoUpload timestamp, but only on mount
+  // Track if component is mounted to prevent state updates after unmount
+  const isMounted = useRef(true);
+
+  // Listen for photo upload events using the event bus
   useEffect(() => {
+    console.log(`[GallerySimple] Setting up event listeners for event ID ${eventId}`);
+
+    // Listen for photo uploaded events
+    const photoUploadedUnsubscribe = eventBus.on(EVENTS.PHOTO_UPLOADED, (data) => {
+      if (!isMounted.current) return;
+
+      // Check if this event is for our event ID
+      if (data.eventId === Number(eventId) || data.eventId === eventId) {
+        console.log(`[GallerySimple] Received PHOTO_UPLOADED event for event ID ${eventId}, refreshing photos`);
+        // Use setTimeout with 0 delay to ensure this runs in the next event loop
+        // This helps with React's batching of state updates
+        setTimeout(() => {
+          if (isMounted.current) {
+            fetchPhotos();
+          }
+        }, 0);
+      }
+    });
+
+    // Listen for gallery refresh events
+    const galleryRefreshUnsubscribe = eventBus.on(EVENTS.GALLERY_REFRESH, (data) => {
+      if (!isMounted.current) return;
+
+      // Check if this event is for our event ID or if it's a global refresh
+      if (!data.eventId || data.eventId === Number(eventId) || data.eventId === eventId) {
+        console.log(`[GallerySimple] Received GALLERY_REFRESH event, refreshing photos`);
+        // Use setTimeout with 0 delay to ensure this runs in the next event loop
+        setTimeout(() => {
+          if (isMounted.current) {
+            fetchPhotos();
+          }
+        }, 0);
+      }
+    });
+
+    // For backward compatibility, also listen for localStorage changes
+    let handleStorageChange: ((e: StorageEvent) => void) | null = null;
+
     if (typeof window !== 'undefined') {
       // Check if there's a lastPhotoUpload in localStorage
       const lastUpload = localStorage.getItem('lastPhotoUpload');
@@ -133,20 +176,36 @@ export function GallerySimple({ eventId }: GallerySimpleProps) {
       }
 
       // Create a storage event listener to detect changes from other components
-      const handleStorageChange = (e: StorageEvent) => {
+      handleStorageChange = (e: StorageEvent) => {
+        if (!isMounted.current) return;
+
         if (e.key === 'lastPhotoUpload' && e.newValue) {
           console.log(`[GallerySimple] Storage event: photo upload timestamp changed to ${e.newValue}`);
-          fetchPhotos();
+          // Use setTimeout with 0 delay to ensure this runs in the next event loop
+          setTimeout(() => {
+            if (isMounted.current) {
+              fetchPhotos();
+            }
+          }, 0);
         }
       };
 
       // Add the event listener
       window.addEventListener('storage', handleStorageChange);
-
-      // Clean up the event listener on unmount
-      return () => window.removeEventListener('storage', handleStorageChange);
     }
-  }, [fetchPhotos]);
+
+    // Clean up all event listeners on unmount
+    return () => {
+      console.log(`[GallerySimple] Cleaning up event listeners for event ID ${eventId}`);
+      isMounted.current = false;
+      photoUploadedUnsubscribe();
+      galleryRefreshUnsubscribe();
+
+      if (handleStorageChange && typeof window !== 'undefined') {
+        window.removeEventListener('storage', handleStorageChange);
+      }
+    };
+  }, [eventId, fetchPhotos]);
 
   // Fetch photos when the event ID changes
   useEffect(() => {
@@ -165,11 +224,6 @@ export function GallerySimple({ eventId }: GallerySimpleProps) {
       <div>
         <div className="flex justify-between items-center mb-4">
           <div className="flex space-x-2">
-            <Button variant="outline" size="sm" onClick={handleUploadPhotos}>
-              <Upload className="mr-2 h-4 w-4" />
-              Unggah Foto
-            </Button>
-
             {photos.length > 0 && (
               <Button
                 variant="outline"
@@ -185,7 +239,7 @@ export function GallerySimple({ eventId }: GallerySimpleProps) {
                 }}
               >
                 <Download className="mr-2 h-4 w-4" />
-                Ekspor Semua
+                Unduh Semua
               </Button>
             )}
           </div>
@@ -295,7 +349,7 @@ export function GallerySimple({ eventId }: GallerySimpleProps) {
                                 const updatedPhotos = existingPhotos.filter((p: any) => p.id !== photo.id);
                                 localStorage.setItem(eventPhotosKey, JSON.stringify(updatedPhotos));
 
-                                // Force refresh
+                                // Force refresh using localStorage (for backward compatibility)
                                 localStorage.setItem('lastPhotoUpload', Date.now().toString());
                               }
 
@@ -306,6 +360,14 @@ export function GallerySimple({ eventId }: GallerySimpleProps) {
                               // Update the photos state directly instead of fetching again
                               setPhotos(prevPhotos => prevPhotos.filter(p => p.id !== photo.id));
                               console.log(`[GallerySimple] Removed photo ${photo.id} from state`);
+
+                              // Emit event to notify other components that a photo has been deleted
+                              console.log(`[GallerySimple] Emitting PHOTO_DELETED event for event ID ${eventId}`);
+                              eventBus.emit(EVENTS.PHOTO_DELETED, {
+                                eventId: eventId,
+                                photoId: photo.id,
+                                timestamp: Date.now()
+                              });
                             } catch (error) {
                               console.error(`[GallerySimple] Error deleting photo:`, error);
                               alert('Gagal menghapus foto. Silakan coba lagi.');
@@ -345,7 +407,17 @@ export function GallerySimple({ eventId }: GallerySimpleProps) {
         eventId={eventId}
         onSuccess={() => {
           // Refetch photos after successful upload
+          console.log('[GallerySimple] onSuccess callback triggered from UploadPhotosDirect, refreshing photos');
+          // Force an immediate refresh
           fetchPhotos();
+
+          // Also schedule another refresh after a short delay to catch any late-arriving photos
+          setTimeout(() => {
+            if (isMounted.current) {
+              console.log('[GallerySimple] Performing delayed refresh to catch any late-arriving photos');
+              fetchPhotos();
+            }
+          }, 500);
         }}
       />
     </>

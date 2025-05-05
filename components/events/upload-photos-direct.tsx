@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { useDropzone } from "react-dropzone"
@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Upload, X, Loader2, AlertCircle, CheckCircle2 } from "lucide-react"
 import { apiClient } from "@/lib/api-client"
 import { uploadsApi } from "@/lib/api-uploads"
+import eventBus, { EVENTS } from "@/lib/event-bus"
 
 interface UploadPhotosDirectProps {
   open: boolean
@@ -152,21 +153,39 @@ export function UploadPhotosDirect({ open, onClose, eventId, onSuccess }: Upload
       setIsSuccess(true)
       setIsUploading(false)
 
-      // Reset after 2 seconds
+      // IMPORTANT: Call onSuccess callback IMMEDIATELY to refresh the gallery
+      // This ensures the gallery refreshes as soon as the upload is complete
+      if (onSuccess) {
+        console.log('[UploadPhotosDirect] Immediately triggering onSuccess callback to refresh gallery');
+        onSuccess();
+      }
+
+      // Emit event to notify all components that photos have been uploaded
+      console.log(`[UploadPhotosDirect] Emitting PHOTO_UPLOADED event for event ID ${numericEventId}`);
+      eventBus.emit(EVENTS.PHOTO_UPLOADED, { eventId: numericEventId, timestamp: Date.now() });
+
+      // Also emit a gallery refresh event
+      eventBus.emit(EVENTS.GALLERY_REFRESH, { eventId: numericEventId, timestamp: Date.now() });
+
+      // For backward compatibility, still use localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('lastPhotoUpload', Date.now().toString());
+
+        // Force a window storage event to ensure all components are notified
+        // This helps with components that might be listening for storage events
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: 'lastPhotoUpload',
+          newValue: Date.now().toString(),
+          url: window.location.href
+        }));
+      }
+
+      // Reset the UI after 1.5 seconds (keep the success message visible briefly)
       setTimeout(() => {
         setFiles([])
         setIsSuccess(false)
         onClose()
-
-        // Call onSuccess callback with a slight delay to ensure state updates have propagated
-        if (onSuccess) {
-          // Force a small delay to ensure localStorage updates are complete
-          setTimeout(() => {
-            console.log('[UploadPhotosDirect] Triggering onSuccess callback');
-            onSuccess();
-          }, 100);
-        }
-      }, 1000)
+      }, 1500)
     } catch (error) {
       console.error('[UploadPhotosDirect] Upload error:', error)
 

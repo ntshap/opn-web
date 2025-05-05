@@ -24,7 +24,7 @@ export default function SimpleLoginPage() {
       formData.append('grant_type', 'password');
 
       // Make API request
-      const response = await fetch('https://backend-project-pemuda.onrender.com/api/v1/auth/token', {
+      const response = await fetch('https://beopn.mysesa.site/api/v1/auth/token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -41,7 +41,7 @@ export default function SimpleLoginPage() {
 
       // Parse response
       const data = await response.json();
-      console.log('Login successful:', { 
+      console.log('Login successful:', {
         access_token: data.access_token ? '[PRESENT]' : '[MISSING]',
         token_type: data.token_type
       });
@@ -76,13 +76,13 @@ export default function SimpleLoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
         <h1 className="text-2xl font-bold mb-6 text-center">Simple Login</h1>
-        
+
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
             {error}
           </div>
         )}
-        
+
         <form onSubmit={handleLogin}>
           <div className="mb-4">
             <label className="block text-gray-700 mb-2">Username</label>
@@ -94,7 +94,7 @@ export default function SimpleLoginPage() {
               disabled={loading}
             />
           </div>
-          
+
           <div className="mb-6">
             <label className="block text-gray-700 mb-2">Password</label>
             <input
@@ -105,7 +105,7 @@ export default function SimpleLoginPage() {
               disabled={loading}
             />
           </div>
-          
+
           <button
             type="submit"
             className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"

@@ -1,9 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Users,
   UserPlus,
+  Filter,
+  X,
 } from "lucide-react"
 
 // Button is now replaced with native button elements
@@ -17,6 +19,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
+import { Label } from "@/components/ui/label"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 
@@ -33,9 +38,13 @@ export default function MembersPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [selectedMember, setSelectedMember] = useState<Member | null>(null)
+  const [ageFilter, setAgeFilter] = useState<number | null>(null)
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
 
-  // Fetch members
-  const { data: membersData = {}, isLoading, refetch, isError } = useMembers()
+  // Fetch members with age filter
+  const { data: membersData = {}, isLoading, refetch, isError } = useMembers(
+    ageFilter ? { age_gt: ageFilter } : undefined
+  )
   const [isRefetching, setIsRefetching] = useState(false)
 
   // Custom refetch function with loading state
@@ -72,6 +81,13 @@ export default function MembersPage() {
 
   // Get unique divisions for tabs
   const divisions = ["all", ...new Set(allMembers.map(member => member.division || 'Tidak ada divisi').filter(Boolean))]
+
+  // Effect to refetch when age filter changes
+  useEffect(() => {
+    if (ageFilter !== null) {
+      handleRefetch();
+    }
+  }, [ageFilter]);
 
   // Handle create member
   const handleCreateMember = (data: any) => {
@@ -181,14 +197,94 @@ export default function MembersPage() {
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 justify-between">
-        <div className="w-full md:w-1/3">
-          <Input
-            placeholder="Cari anggota..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full"
-          />
+        <div className="flex flex-col md:flex-row gap-2 w-full md:w-2/3">
+          <div className="w-full md:w-2/3">
+            <Input
+              placeholder="Cari anggota..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  className={`flex items-center py-2 px-4 rounded ${ageFilter ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}
+                  style={{
+                    border: 'none',
+                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                    fontWeight: 400
+                  }}
+                >
+                  <Filter className="mr-2 h-4 w-4" />
+                  Filter Umur
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80">
+                <div className="space-y-4">
+                  <h4 className="font-medium">Filter berdasarkan umur</h4>
+                  <div className="space-y-2">
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="age-filter">Umur minimal:</Label>
+                      <Input
+                        id="age-filter"
+                        type="number"
+                        min="0"
+                        max="100"
+                        placeholder="Masukkan umur"
+                        value={ageFilter || ""}
+                        onChange={(e) => {
+                          const value = e.target.value ? parseInt(e.target.value, 10) : null;
+                          setAgeFilter(value);
+                        }}
+                      />
+                      {ageFilter && (
+                        <button
+                          onClick={() => setAgeFilter(null)}
+                          className="text-xs text-blue-600 hover:text-blue-800 self-end"
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex justify-between">
+                    <button
+                      onClick={() => setIsFilterOpen(false)}
+                      className="px-3 py-1 text-sm bg-gray-100 rounded"
+                    >
+                      Tutup
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsFilterOpen(false);
+                        handleRefetch();
+                      }}
+                      className="px-3 py-1 text-sm bg-blue-600 text-white rounded"
+                    >
+                      Terapkan
+                    </button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {ageFilter && (
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                Umur ≥ {ageFilter}
+                <button
+                  onClick={() => setAgeFilter(null)}
+                  className="ml-1 hover:text-blue-900"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            )}
+          </div>
         </div>
+
         <Tabs defaultValue="all" className="w-full md:w-auto" onValueChange={setActiveTab}>
           <TabsList className="overflow-x-auto">
             {divisions.map((division) => (

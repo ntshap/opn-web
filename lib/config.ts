@@ -1,8 +1,8 @@
 export const API_CONFIG = {
-  // Use local API proxy
-  BASE_URL: '/api/v1',
+  // Use backend directly, no local proxy
+  BASE_URL: 'https://beopn.mysesa.site/api/v1',
   // Backend URL for server-side API calls
-  BACKEND_URL: 'https://backend-project-pemuda.onrender.com',
+  BACKEND_URL: 'https://beopn.mysesa.site',
   TIMEOUT: {
     DEFAULT: 15000,
     FINANCE: 30000,

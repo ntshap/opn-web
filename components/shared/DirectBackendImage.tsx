@@ -98,7 +98,7 @@ export function DirectBackendImage({
   }
 
   // Do NOT fix double slashes in URL as the backend requires them
-  // The backend expects URLs like https://backend-project-pemuda.onrender.com//uploads/...
+  // The backend expects URLs like https://beopn.mysesa.site//uploads/...
   console.log(`[DirectBackendImage] Using URL: ${url}`);
 
   // Keep the original URL as is

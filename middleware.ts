@@ -10,7 +10,7 @@ export async function middleware(request: NextRequest) {
   const isLoginPage = request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/simple-login'
   const isApiRoute = request.nextUrl.pathname.startsWith('/api/')
   // Check if this is a direct image request to the backend
-  const isBackendImageRequest = request.nextUrl.host.includes('backend-project-pemuda.onrender.com') &&
+  const isBackendImageRequest = request.nextUrl.host.includes('beopn.mysesa.site') &&
     (request.nextUrl.pathname.includes('/uploads/') || request.nextUrl.pathname.includes('/images/'))
   // Check if this is a direct-image API request
   const isDirectImageRequest = request.nextUrl.pathname === '/api/v1/direct-image'

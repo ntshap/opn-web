@@ -31,7 +31,7 @@ export default function DirectLoginPage() {
       setDebugInfo(prev => prev + '\nMaking API request...');
 
       // Make API request
-      const response = await fetch('https://backend-project-pemuda.onrender.com/api/v1/auth/token', {
+      const response = await fetch('https://beopn.mysesa.site/api/v1/auth/token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -93,7 +93,7 @@ export default function DirectLoginPage() {
       // Redirect to dashboard
       console.log('Redirecting to dashboard...');
       setDebugInfo(prev => prev + '\nRedirecting to dashboard...');
-      
+
       // Use direct navigation to dashboard
       window.location.href = '/dashboard';
     } catch (error) {
@@ -109,13 +109,13 @@ export default function DirectLoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
         <h1 className="text-2xl font-bold mb-6 text-center">Direct Login</h1>
-        
+
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
             {error}
           </div>
         )}
-        
+
         <form onSubmit={handleLogin}>
           <div className="mb-4">
             <label className="block text-gray-700 mb-2">Username</label>
@@ -127,7 +127,7 @@ export default function DirectLoginPage() {
               disabled={loading}
             />
           </div>
-          
+
           <div className="mb-6">
             <label className="block text-gray-700 mb-2">Password</label>
             <input
@@ -138,7 +138,7 @@ export default function DirectLoginPage() {
               disabled={loading}
             />
           </div>
-          
+
           <button
             type="submit"
             className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
@@ -147,7 +147,7 @@ export default function DirectLoginPage() {
             {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
-        
+
         {debugInfo && (
           <div className="mt-6 p-4 bg-gray-100 rounded overflow-auto max-h-60">
             <h3 className="font-bold mb-2">Debug Info:</h3>

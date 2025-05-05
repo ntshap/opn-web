@@ -21,14 +21,9 @@ const nextConfig = {
   devIndicators: {
     buildActivityPosition: 'bottom-right',
   },
-  // Add rewrites for API endpoints
+  // No API rewrites - direct connection to backend
   async rewrites() {
-    return [
-      {
-        source: '/api/v1/:path*',
-        destination: 'https://backend-project-pemuda.onrender.com/api/v1/:path*',
-      },
-    ];
+    return [];
   },
 }
 
