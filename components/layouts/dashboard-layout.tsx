@@ -198,18 +198,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </nav>
         </ScrollArea>
 
-        {/* Sidebar footer */}
-        <div className="border-t p-4">
-          <Link
-            href="/dashboard/settings"
-            className={`flex items-center rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 ${
-              isSidebarCollapsed ? "justify-center" : "justify-start"
-            }`}
-          >
-            <Settings className="h-5 w-5" />
-            {!isSidebarCollapsed && <span className="ml-3">Pengaturan</span>}
-          </Link>
-        </div>
+        {/* Sidebar footer - Pengaturan removed */}
+        <div className="border-t p-4"></div>
       </aside>
 
       {/* Main content */}
@@ -235,68 +225,44 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </div>
           <div className="flex items-center space-x-3">
             {isClient && <NotificationsDropdown />}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src="https://ui-avatars.com/api/?name=User&background=c7d2fe&color=4f46e5" alt="User" />
-                    <AvatarFallback>U</AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem onClick={() => router.push("/dashboard/profile")}>
-                    <SafeIcon><User className="mr-2 h-4 w-4" /></SafeIcon>
-                    <span>Profil</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => router.push("/dashboard/settings")}>
-                    <SafeIcon><Settings className="mr-2 h-4 w-4" /></SafeIcon>
-                    <span>Pengaturan</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => router.push("/help")}>
-                    <SafeIcon><HelpCircle className="mr-2 h-4 w-4" /></SafeIcon>
-                    <span>Bantuan</span>
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-red-600 focus:text-red-600" onClick={() => {
-                  // Clear all possible auth tokens
-                  localStorage.removeItem('token');
-                  localStorage.removeItem('auth_token');
-                  localStorage.removeItem('refreshToken');
-                  localStorage.removeItem('direct_token');
-                  localStorage.removeItem('is_logged_in');
-                  localStorage.removeItem('token_type');
-                  localStorage.removeItem('login_time');
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex items-center text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={() => {
+                // Clear all possible auth tokens
+                localStorage.removeItem('token');
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('refreshToken');
+                localStorage.removeItem('direct_token');
+                localStorage.removeItem('is_logged_in');
+                localStorage.removeItem('token_type');
+                localStorage.removeItem('login_time');
 
-                  // Clear session storage too
-                  sessionStorage.removeItem('token');
-                  sessionStorage.removeItem('auth_token');
-                  sessionStorage.removeItem('refreshToken');
-                  sessionStorage.removeItem('direct_token');
-                  sessionStorage.removeItem('is_logged_in');
-                  sessionStorage.removeItem('token_type');
-                  sessionStorage.removeItem('login_time');
+                // Clear session storage too
+                sessionStorage.removeItem('token');
+                sessionStorage.removeItem('auth_token');
+                sessionStorage.removeItem('refreshToken');
+                sessionStorage.removeItem('direct_token');
+                sessionStorage.removeItem('is_logged_in');
+                sessionStorage.removeItem('token_type');
+                sessionStorage.removeItem('login_time');
 
-                  // Clear cookies
-                  document.cookie = "token=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT";
-                  document.cookie = "auth_token=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT";
-                  document.cookie = "refreshToken=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT";
+                // Clear cookies
+                document.cookie = "token=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT";
+                document.cookie = "auth_token=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT";
+                document.cookie = "refreshToken=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT";
 
-                  // Then call the regular logout function
-                  handleLogout();
+                // Then call the regular logout function
+                handleLogout();
 
-                  // Force redirect to login page with cache busting parameter
-                  window.location.href = '/login?t=' + new Date().getTime();
-                }}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Keluar</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                // Force redirect to login page with cache busting parameter
+                window.location.href = '/login?t=' + new Date().getTime();
+              }}
+            >
+              <SafeIcon><LogOut className="mr-2 h-4 w-4" /></SafeIcon>
+              <span>Keluar</span>
+            </Button>
           </div>
         </header>
 

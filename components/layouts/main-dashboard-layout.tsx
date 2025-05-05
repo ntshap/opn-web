@@ -72,11 +72,6 @@ export function MainDashboardLayout({ children }: { children: React.ReactNode })
       label: "Berita",
       path: "/dashboard/news",
     },
-    {
-      icon: <Settings className="w-5 h-5" />,
-      label: "Pengaturan",
-      path: "/dashboard/settings",
-    },
   ]
 
   return (
@@ -217,28 +212,41 @@ export function MainDashboardLayout({ children }: { children: React.ReactNode })
                 <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-destructive"></span>
                 <span className="sr-only">Notifications</span>
               </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src="https://ui-avatars.com/api/?name=Admin+User" />
-                      <AvatarFallback>AU</AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex items-center text-red-600 hover:text-red-700 hover:bg-red-50"
+                onClick={() => {
+                  // Clear all possible auth tokens
+                  localStorage.removeItem('token');
+                  localStorage.removeItem('auth_token');
+                  localStorage.removeItem('refreshToken');
+                  localStorage.removeItem('direct_token');
+                  localStorage.removeItem('is_logged_in');
+                  localStorage.removeItem('token_type');
+                  localStorage.removeItem('login_time');
+
+                  // Clear session storage too
+                  sessionStorage.removeItem('token');
+                  sessionStorage.removeItem('auth_token');
+                  sessionStorage.removeItem('refreshToken');
+                  sessionStorage.removeItem('direct_token');
+                  sessionStorage.removeItem('is_logged_in');
+                  sessionStorage.removeItem('token_type');
+                  sessionStorage.removeItem('login_time');
+
+                  // Clear cookies
+                  document.cookie = "token=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT";
+                  document.cookie = "auth_token=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT";
+                  document.cookie = "refreshToken=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT";
+
+                  // Force redirect to login page with cache busting parameter
+                  window.location.href = '/login?t=' + new Date().getTime();
+                }}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Keluar</span>
+              </Button>
             </div>
           </div>
         </header>
