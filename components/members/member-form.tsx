@@ -18,13 +18,15 @@ const formSchema = z.object({
   full_name: z.string().min(3, { message: "Nama lengkap harus diisi minimal 3 karakter" }),
   email: z.string().email({ message: "Format email tidak valid" }),
   phone_number: z.string().min(10, { message: "Nomor telepon harus diisi minimal 10 karakter" }),
+  birth_place: z.string().optional(),
   birth_date: z.date({
     required_error: "Tanggal lahir harus diisi",
   }),
-  birth_place: z.string().optional(),
   division: z.string().min(1, { message: "Divisi harus diisi" }),
   address: z.string().min(5, { message: "Alamat harus diisi minimal 5 karakter" }),
-  username: z.string().optional(),
+  photo_url: z.string().optional(),
+  username: z.string().min(3, { message: "Username harus diisi minimal 3 karakter" }),
+  password: z.string().min(6, { message: "Password harus diisi minimal 6 karakter" }),
   role: z.string().optional(),
 })
 
@@ -33,11 +35,13 @@ interface MemberFormProps {
     full_name: string
     email: string
     phone_number: string
-    birth_date: Date | string
     birth_place?: string
+    birth_date: Date | string
     division: string
     address: string
+    photo_url?: string
     username?: string
+    password?: string
     role?: string
   }>
   onSubmit: (data: MemberFormData) => void
@@ -49,14 +53,16 @@ export function MemberForm({ defaultValues, onSubmit, isSubmitting = false, isEd
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      username: defaultValues?.username || "",
+      password: defaultValues?.password || "",
       full_name: defaultValues?.full_name || "",
       email: defaultValues?.email || "",
       phone_number: defaultValues?.phone_number || "",
-      birth_date: defaultValues?.birth_date ? (defaultValues.birth_date instanceof Date ? defaultValues.birth_date : new Date(defaultValues.birth_date)) : new Date(),
       birth_place: defaultValues?.birth_place || "",
+      birth_date: defaultValues?.birth_date ? (defaultValues.birth_date instanceof Date ? defaultValues.birth_date : new Date(defaultValues.birth_date)) : new Date(),
       division: defaultValues?.division || "",
       address: defaultValues?.address || "",
-      username: defaultValues?.username || "",
+      photo_url: defaultValues?.photo_url || "",
       role: defaultValues?.role || "member",
     },
   })
@@ -89,31 +95,68 @@ export function MemberForm({ defaultValues, onSubmit, isSubmitting = false, isEd
       console.log('Submitting biodata update:', biodataData);
       onSubmit(biodataData as any);
     } else {
-      // We're creating a new member
-      const memberData: MemberFormData = {
-        username: values.username || values.email.split('@')[0], // Use email username if not provided
-        role: values.role || "Member", // Default role
-        member_info: {
+      // We're creating a new member with username and password
+      // Ensure the exact field order matches the API schema
+      const userData = {
+        user_data: {
+          username: values.username,
+          password: values.password
+        },
+        biodata: {
           full_name: values.full_name,
-          division: values.division,
           email: values.email,
           phone_number: values.phone_number,
-          birth_date: birthDate,
           birth_place: values.birth_place || "",
+          birth_date: birthDate,
+          division: values.division,
           address: values.address,
-          photo_url: "", // Empty string for now
-          age: age
+          photo_url: "" // Empty string for now
         }
       };
 
-      console.log('Submitting new member data:', memberData);
-      onSubmit(memberData);
+      console.log('Submitting new user data:', {
+        ...userData,
+        user_data: { ...userData.user_data, password: '******' } // Mask password in logs
+      });
+      onSubmit(userData as any);
     }
   }
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        {!isEditMode && (
+          <>
+            <FormField
+              control={form.control}
+              name="username"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Username</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Masukkan username" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Masukkan password" type="password" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </>
+        )}
+
         <FormField
           control={form.control}
           name="full_name"
@@ -142,8 +185,6 @@ export function MemberForm({ defaultValues, onSubmit, isSubmitting = false, isEd
           )}
         />
 
-        {/* Password field removed as we're not using it anymore */}
-
         <FormField
           control={form.control}
           name="phone_number"
@@ -152,6 +193,20 @@ export function MemberForm({ defaultValues, onSubmit, isSubmitting = false, isEd
               <FormLabel>Nomor Telepon</FormLabel>
               <FormControl>
                 <Input placeholder="Masukkan nomor telepon" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="birth_place"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Tempat Lahir</FormLabel>
+              <FormControl>
+                <Input placeholder="Masukkan tempat lahir" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -202,20 +257,6 @@ export function MemberForm({ defaultValues, onSubmit, isSubmitting = false, isEd
 
         <FormField
           control={form.control}
-          name="birth_place"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Tempat Lahir</FormLabel>
-              <FormControl>
-                <Input placeholder="Masukkan tempat lahir" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
           name="division"
           render={({ field }) => (
             <FormItem>
@@ -242,8 +283,6 @@ export function MemberForm({ defaultValues, onSubmit, isSubmitting = false, isEd
           )}
         />
 
-
-
         <FormField
           control={form.control}
           name="address"
@@ -252,6 +291,20 @@ export function MemberForm({ defaultValues, onSubmit, isSubmitting = false, isEd
               <FormLabel>Alamat</FormLabel>
               <FormControl>
                 <Input placeholder="Masukkan alamat lengkap" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="photo_url"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>URL Foto</FormLabel>
+              <FormControl>
+                <Input placeholder="Masukkan URL foto" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

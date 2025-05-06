@@ -9,9 +9,12 @@ export default async function EventDetailsPage({ params }: { params: { id: strin
   const { id } = params
 
   try {
-    // Fetch the event data from the API using the local API proxy
-    const event = await fetch(`/api/v1/events/${id}`, {
-      cache: 'no-store'
+    // Fetch the event data directly from the backend API
+    const event = await fetch(`https://beopn.mysesa.site/api/v1/events/${id}`, {
+      cache: 'no-store',
+      headers: {
+        'Content-Type': 'application/json'
+      }
     }).then(res => {
       if (!res.ok) throw new Error('Failed to fetch event')
       return res.json()

@@ -245,7 +245,7 @@ export const uploadsApi = {
     }
   },
 
-  // Upload finance document
+  // Upload finance document - using PUT instead of POST as per backend requirements
   uploadFinanceDocument: async (
     financeId: number | string,
     file: File,
@@ -287,18 +287,18 @@ export const uploadsApi = {
 
       // Log the full API URL for debugging
       // Use the standard URL format for all endpoints
-      // Format should be: https://backend-project-pemuda.onrender.com/api/v1/uploads/finances/10/document
+      // Format should be: https://beopn.mysesa.site/api/v1/uploads/finances/10/document
       const apiEndpoint = `/uploads/finances/${id}/document`; // Standard format
       console.log('[API-Uploads] Making API request to endpoint:', apiEndpoint);
 
       // The uploadsApiClient has baseURL: ${API_CONFIG.BACKEND_URL}/api/v1
-      // So the full URL will be: https://backend-project-pemuda.onrender.com/api/v1/uploads/finances/10/document
+      // So the full URL will be: https://beopn.mysesa.site/api/v1/uploads/finances/10/document
       // This is the standard format for all API endpoints
 
-      // Use the uploadsApiClient for uploading document
+      // Use the uploadsApiClient for uploading document with PUT method instead of POST
       const response = await withRetry(() => {
-        console.log('[API-Uploads] Attempting API call with uploadsApiClient');
-        return uploadsApiClient.post(
+        console.log('[API-Uploads] Attempting API call with uploadsApiClient using PUT method');
+        return uploadsApiClient.put(
           apiEndpoint,
           formData,
           {
@@ -427,12 +427,12 @@ export const uploadsApi = {
 
       // Log the full API URL for debugging
       // Use the standard URL format for all endpoints
-      // Format should be: https://backend-project-pemuda.onrender.com/api/v1/uploads/finances/10/document
+      // Format should be: https://beopn.mysesa.site/api/v1/uploads/finances/10/document
       const apiEndpoint = `/uploads/finances/${id}/document`; // Standard format
       console.log('[API-Uploads] Making API request to endpoint:', apiEndpoint);
 
       // The uploadsApiClient has baseURL: ${API_CONFIG.BACKEND_URL}/api/v1
-      // So the full URL will be: https://backend-project-pemuda.onrender.com/api/v1/uploads/finances/10/document
+      // So the full URL will be: https://beopn.mysesa.site/api/v1/uploads/finances/10/document
       // This is the standard format for all API endpoints
 
       // Use the uploadsApiClient for editing document
@@ -551,12 +551,12 @@ export const uploadsApi = {
 
       // Log the full API URL for debugging
       // Use the standard URL format for all endpoints
-      // Format should be: https://backend-project-pemuda.onrender.com/api/v1/uploads/finances/10/document
+      // Format should be: https://beopn.mysesa.site/api/v1/uploads/finances/10/document
       const apiEndpoint = `/uploads/finances/${id}/document`; // Standard format
       console.log('[API-Uploads] Making API request to endpoint:', apiEndpoint);
 
       // The uploadsApiClient has baseURL: ${API_CONFIG.BACKEND_URL}/api/v1
-      // So the full URL will be: https://backend-project-pemuda.onrender.com/api/v1/uploads/finances/10/document
+      // So the full URL will be: https://beopn.mysesa.site/api/v1/uploads/finances/10/document
       // This is the standard format for all API endpoints
 
       // Use the uploadsApiClient for deleting document

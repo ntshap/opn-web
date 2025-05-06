@@ -16,6 +16,7 @@ import { id } from "date-fns/locale"
 import { useFinanceHistory } from "@/hooks/useFinance"
 import { formatRupiah } from "@/lib/utils"
 import { FinanceDocumentGallery } from "./finance-document-gallery"
+import { TruncatedDescription } from "./truncated-description"
 
 export function FinanceList() {
   const router = useRouter()
@@ -34,7 +35,15 @@ export function FinanceList() {
   // Handle opening the document gallery
   const handleOpenDocumentGallery = (finance: any) => {
     setSelectedFinanceId(finance.id)
-    setSelectedDocumentUrl(finance.document_url)
+
+    // Make sure we have a valid document URL
+    let documentUrl = finance.document_url;
+
+    // Log the document URL for debugging
+    console.log("Opening document gallery with URL:", documentUrl);
+
+    // Set the document URL and open the gallery
+    setSelectedDocumentUrl(documentUrl)
     setIsGalleryOpen(true)
   }
 
@@ -221,7 +230,13 @@ export function FinanceList() {
                         <TableCell>
                           {format(parseISO(finance.date), "dd MMM yyyy", { locale: id })}
                         </TableCell>
-                        <TableCell>{finance.description}</TableCell>
+                        <TableCell className="min-w-[200px] max-w-[300px]">
+                          <TruncatedDescription
+                            description={finance.description}
+                            maxLength={30}
+                            title={`Deskripsi Transaksi - ${format(parseISO(finance.date), "dd MMM yyyy", { locale: id })}`}
+                          />
+                        </TableCell>
                         <TableCell>
                           <span
                             className="py-1 px-3 rounded inline-flex items-center"
@@ -246,14 +261,12 @@ export function FinanceList() {
                         </TableCell>
                         <TableCell>
                           {finance.document_url ? (
-                            <a
-                              href={finance.document_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                            <button
+                              onClick={() => handleOpenDocumentGallery(finance)}
                               className="text-blue-600 hover:underline flex items-center"
                             >
-                              <Download className="h-4 w-4 mr-1" /> Lihat
-                            </a>
+                              <Image className="h-4 w-4 mr-1" /> Lihat
+                            </button>
                           ) : (
                             <span className="text-gray-400">-</span>
                           )}

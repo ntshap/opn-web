@@ -26,6 +26,15 @@ export function formatImageUrl(url: string | null | undefined, contextId?: strin
     // Log the original URL for debugging
     console.log(`[formatImageUrl] Original URL: ${url}`);
 
+    // Log additional details about the URL format
+    if (url.includes('uploads')) {
+      console.log(`[formatImageUrl] URL contains 'uploads' path: ${url}`);
+    }
+
+    if (url.includes('//')) {
+      console.log(`[formatImageUrl] URL contains double slashes: ${url}`);
+    }
+
     // If it's already a complete URL, return it as is
     if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
       console.log(`[formatImageUrl] URL is already complete: ${url}`);
@@ -269,9 +278,23 @@ export async function loadBackendImage(path: string): Promise<Blob | null> {
  */
 export async function fetchImageAsBlob(path: string): Promise<string | null> {
   try {
+    console.log(`[fetchImageAsBlob] Starting with original path: ${path}`);
+
     // Format the URL using our utility function
     const url = formatImageUrl(path);
     console.log(`[fetchImageAsBlob] Formatted URL: ${url}`);
+
+    // Additional logging for URL structure
+    if (url.includes('uploads')) {
+      console.log(`[fetchImageAsBlob] URL contains 'uploads' path: ${url}`);
+
+      // Check if the URL has the correct structure
+      if (url.includes('beopn.mysesa.site//uploads')) {
+        console.log(`[fetchImageAsBlob] URL has correct double-slash structure`);
+      } else if (url.includes('beopn.mysesa.site/uploads')) {
+        console.log(`[fetchImageAsBlob] URL has incorrect single-slash structure`);
+      }
+    }
 
     // IMPORTANT: Never use localhost, always use the backend URL directly
     if (url.includes('localhost')) {
@@ -288,6 +311,7 @@ export async function fetchImageAsBlob(path: string): Promise<string | null> {
 
     // Make sure token has Bearer prefix
     const authHeader = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+    console.log(`[fetchImageAsBlob] Using auth token: ${authHeader.substring(0, 15)}...`);
 
     // Add a timestamp to prevent caching
     const urlWithTimestamp = `${url}${url.includes('?') ? '&' : '?'}_t=${Date.now()}`;

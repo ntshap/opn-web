@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { FinanceDocumentGallery } from "./components/finance-document-gallery"
 import { TipTapContent } from "@/components/ui/tiptap-editor"
+import { TruncatedDescription } from "@/components/finance/truncated-description"
 import "./finance.css"
 
 // Local interface for displaying transactions in the UI
@@ -117,7 +118,15 @@ export default function FinancePage() {
 
   const openDocumentGallery = (transaction: Transaction) => {
     setSelectedFinanceId(transaction.id)
-    setSelectedDocumentUrl(transaction.document_url)
+
+    // Make sure we have a valid document URL
+    let documentUrl = transaction.document_url;
+
+    // Log the document URL for debugging
+    console.log("Opening document gallery with URL:", documentUrl);
+
+    // Set the document URL and open the gallery
+    setSelectedDocumentUrl(documentUrl)
     setIsGalleryOpen(true)
   }
 
@@ -234,9 +243,14 @@ export default function FinancePage() {
                 {transactions.map((transaction: Transaction) => (
                   <TableRow key={transaction.id}>
                     <TableCell>{format(new Date(transaction.date), "dd MMM yyyy")}</TableCell>
-                    <TableCell>
-                      <div className="max-w-[200px] overflow-hidden">
-                        <TipTapContent content={transaction.description} />
+                    <TableCell className="min-w-[200px] max-w-[300px]">
+                      <div>
+                        <TruncatedDescription
+                          description={transaction.description}
+                          maxLength={30}
+                          isRichText={true}
+                          title={`Deskripsi Transaksi - ${format(new Date(transaction.date), "dd MMM yyyy")}`}
+                        />
                       </div>
                     </TableCell>
                     <TableCell>
@@ -269,7 +283,7 @@ export default function FinancePage() {
                           onClick={() => openDocumentGallery(transaction)}
                           className="text-blue-600 hover:underline flex items-center"
                         >
-                          <Download className="h-4 w-4 mr-1" /> Lihat
+                          <Image className="h-4 w-4 mr-1" /> Lihat
                         </button>
                       ) : (
                         <span className="text-gray-400">-</span>

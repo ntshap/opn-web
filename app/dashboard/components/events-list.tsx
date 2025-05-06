@@ -50,8 +50,8 @@ export function EventsList() {
           return
         }
 
-        // Use the local API proxy instead of direct backend call
-        const response = await fetch('/api/v1/events/?limit=5', {
+        // Use direct backend URL instead of local API proxy
+        const response = await fetch('https://beopn.mysesa.site/api/v1/events/?limit=5', {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`

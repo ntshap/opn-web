@@ -61,7 +61,8 @@ export function DocumentUploadModal({
       setIsUploading(true)
       setError(null)
 
-      // Upload the document
+      // Upload the document using PUT method
+      // Note: We use PUT for both new uploads and updates as per backend requirements
       await uploadsApi.uploadFinanceDocument(
         financeId,
         file,

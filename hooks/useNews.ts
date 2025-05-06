@@ -134,7 +134,63 @@ export function useNewsItem(id: number | string) {
 
   return useQuery({
     queryKey: newsKeys.detail(id),
-    queryFn: ({ signal }) => newsApi.getNewsItem(id, signal),
+    queryFn: async ({ signal }) => {
+      console.log(`[useNewsItem] Fetching news item with ID: ${id}`);
+      try {
+        // Add a timestamp to prevent caching issues
+        const timestamp = Date.now();
+        console.log(`[useNewsItem] Adding timestamp to prevent caching: ${timestamp}`);
+
+        const data = await newsApi.getNewsItem(id, signal);
+        console.log(`[useNewsItem] Successfully fetched news item:`, data);
+
+        // Validate the data structure
+        if (!data) {
+          console.error(`[useNewsItem] No data returned for news item with ID: ${id}`);
+          throw new Error('No data returned from API');
+        }
+
+        // Ensure we have a valid description
+        if (!data.description) {
+          console.warn(`[useNewsItem] News item has no description, setting empty string`);
+          data.description = '';
+        } else {
+          console.log(`[useNewsItem] Description type: ${typeof data.description}, length: ${data.description.length}`);
+
+          // Check if the description is valid HTML or just plain text
+          if (typeof data.description === 'string' && !data.description.includes('<')) {
+            console.log(`[useNewsItem] Description appears to be plain text, not HTML`);
+          }
+
+          // Log a sample of the description for debugging
+          if (typeof data.description === 'string' && data.description.length > 0) {
+            console.log(`[useNewsItem] Description sample: ${data.description.substring(0, 100)}...`);
+          }
+        }
+
+        // Log the photos for debugging
+        if (data.photos && data.photos.length > 0) {
+          console.log(`[useNewsItem] News has ${data.photos.length} photos`);
+          data.photos.forEach((photo, index) => {
+            console.log(`[useNewsItem] Photo ${index + 1}: ${photo.photo_url}`);
+
+            // Validate photo URL
+            if (!photo.photo_url) {
+              console.warn(`[useNewsItem] Photo ${index + 1} has no URL`);
+            } else if (photo.photo_url.includes('localhost')) {
+              console.error(`[useNewsItem] Photo ${index + 1} has localhost URL: ${photo.photo_url}`);
+            }
+          });
+        } else {
+          console.log(`[useNewsItem] News has no photos`);
+        }
+
+        return data;
+      } catch (error) {
+        console.error(`[useNewsItem] Error fetching news item:`, error);
+        throw error;
+      }
+    },
     enabled: !!id,
     retry: (failureCount, error) => {
       if (axios.isCancel(error)) {

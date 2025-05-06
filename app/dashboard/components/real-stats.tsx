@@ -29,9 +29,8 @@ export function RealStats() {
         }
 
         try {
-          // Fetch events from the backend API using the local API proxy
-          // Use the local API proxy instead of direct backend call
-          const response = await fetch('/api/v1/events/?limit=100', {
+          // Fetch events directly from the backend API
+          const response = await fetch('https://beopn.mysesa.site/api/v1/events/?limit=100', {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'

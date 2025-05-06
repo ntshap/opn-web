@@ -25,7 +25,7 @@ export function FinanceDocumentGallery({
   documentUrl,
   onSuccess
 }: FinanceDocumentGalleryProps) {
-  const [showUploadView, setShowUploadView] = useState(!documentUrl)
+  const [showUploadView, setShowUploadView] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -39,7 +39,12 @@ export function FinanceDocumentGallery({
       setFile(null)
       setError(null)
       setUploadProgress(0)
-      setShowUploadView(!documentUrl)
+      // Only show upload view if there's no document URL
+      // Make sure to properly check for empty strings and null values
+      setShowUploadView(!documentUrl || documentUrl === "" || documentUrl === "null")
+
+      // Log for debugging
+      console.log("Document gallery opened with URL:", documentUrl)
     }
   }, [open, documentUrl])
 
@@ -76,7 +81,8 @@ export function FinanceDocumentGallery({
       setIsUploading(true)
       setError(null)
 
-      // Upload the document
+      // Upload the document using PUT method
+      // Note: We use PUT for both new uploads and updates as per backend requirements
       await uploadsApi.uploadFinanceDocument(
         financeId,
         file,
@@ -140,9 +146,9 @@ export function FinanceDocumentGallery({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[700px] md:max-w-[800px] lg:max-w-[900px]">
         <DialogHeader>
-          <DialogTitle>Galeri Bukti Transaksi</DialogTitle>
+          <DialogTitle>Bukti Transaksi</DialogTitle>
         </DialogHeader>
 
         {error && (
@@ -288,30 +294,65 @@ export function FinanceDocumentGallery({
 
             {documentUrl ? (
               <div className="grid grid-cols-1 gap-4">
-                <div className="relative bg-gray-100 aspect-square overflow-hidden group">
+                <div className="relative bg-gray-100 aspect-square overflow-hidden group border-2 border-blue-200 rounded-lg shadow-md">
                   {documentUrl.toLowerCase().endsWith('.pdf') ? (
                     <div className="w-full h-full flex items-center justify-center">
                       <div className="text-center">
                         <Image className="h-16 w-16 mx-auto text-slate-400" />
                         <p className="mt-2 text-sm text-slate-600">Dokumen PDF</p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-4"
+                          onClick={() => {
+                            if (documentUrl) {
+                              window.open(documentUrl, '_blank');
+                            }
+                          }}
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Buka PDF
+                        </Button>
                       </div>
                     </div>
                   ) : (
-                    <img
-                      src={documentUrl}
-                      alt="Bukti transaksi"
-                      className="w-full h-full object-contain"
-                      onError={(e) => {
-                        console.error("Error loading image:", documentUrl);
-                        // If image fails to load, show placeholder
-                        (e.target as HTMLImageElement).src = "/placeholder.svg";
+                    <div className="w-full h-full flex items-center justify-center">
+                      <img
+                        src={documentUrl}
+                        alt="Bukti transaksi"
+                        className="max-w-full max-h-full object-contain"
+                        onError={(e) => {
+                          console.error("Error loading image:", documentUrl);
 
-                        // Log the URL format for debugging
-                        if (documentUrl && !documentUrl.includes('/api/v1/uploads/')) {
-                          console.warn("Document URL may have incorrect format. Expected format with /api/v1/uploads/:", documentUrl);
-                        }
-                      }}
-                    />
+                          // Try to fix the URL if it's missing the API prefix
+                          const target = e.target as HTMLImageElement;
+
+                          if (documentUrl) {
+                            // Check if URL is relative and doesn't have the proper API prefix
+                            if (documentUrl.startsWith('/uploads/') && !documentUrl.includes('/api/v1/')) {
+                              const fixedUrl = `/api/v1${documentUrl}`;
+                              console.log("Fixing document URL format. New URL:", fixedUrl);
+                              target.src = fixedUrl;
+                              return;
+                            }
+
+                            // Check if URL is absolute but missing the API path
+                            if (documentUrl.includes('beopn.mysesa.site') && !documentUrl.includes('/api/v1/')) {
+                              const fixedUrl = documentUrl.replace('beopn.mysesa.site/', 'beopn.mysesa.site/api/v1/');
+                              console.log("Fixing document URL format. New URL:", fixedUrl);
+                              target.src = fixedUrl;
+                              return;
+                            }
+
+                            // Log the URL format for debugging
+                            console.warn("Document URL format issue. Current URL:", documentUrl);
+                          }
+
+                          // If all fixes fail, show placeholder
+                          target.src = "/placeholder.svg";
+                        }}
+                      />
+                    </div>
                   )}
                   <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-2 text-sm">
                     Bukti Transaksi

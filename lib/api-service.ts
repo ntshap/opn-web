@@ -808,13 +808,21 @@ export const newsApi = {
     try {
       console.log(`Fetching news item with ID: ${id}`)
 
+      // Add a timestamp to prevent caching issues
+      const timestamp = Date.now();
+
       const response = await withRetry(() =>
         apiClient.get<NewsItem>(`${API_CONFIG.ENDPOINTS.NEWS}/${id}/`, {
           signal,
+          params: {
+            _t: timestamp // Add timestamp to prevent caching
+          },
           // Add additional headers for debugging
           headers: {
-            'X-Request-ID': `news-item-${id}-${Date.now()}`,
-            'Cache-Control': 'no-cache'
+            'X-Request-ID': `news-item-${id}-${timestamp}`,
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
           }
         })
       )
@@ -826,6 +834,24 @@ export const newsApi = {
 
       // Log the raw data for debugging
       console.log(`Raw news item data:`, response.data)
+
+      // Validate the photos array
+      if (response.data.photos && Array.isArray(response.data.photos)) {
+        console.log(`News item has ${response.data.photos.length} photos`)
+
+        // Log each photo URL for debugging
+        response.data.photos.forEach((photo, index) => {
+          if (photo && photo.photo_url) {
+            console.log(`Photo ${index + 1} URL: ${photo.photo_url}`)
+          } else {
+            console.warn(`Photo ${index + 1} has no URL or is invalid`)
+          }
+        })
+      } else {
+        console.warn(`News item has no photos array or it's not an array`)
+        // Ensure photos is always an array
+        response.data.photos = []
+      }
 
       // Validate and normalize the data to ensure valid date strings
       const validatedData: NewsItem = {
@@ -846,7 +872,23 @@ export const newsApi = {
           ? response.data.updated_at
           : new Date().toISOString(),
         created_by: String(response.data.created_by || ''),
-        photos: Array.isArray(response.data.photos) ? response.data.photos : []
+        photos: Array.isArray(response.data.photos) ? response.data.photos.map(photo => {
+          // Log each photo URL for debugging
+          if (photo && photo.photo_url) {
+            console.log(`[getNewsItem] Photo URL from API: ${photo.photo_url}`);
+          }
+          return photo;
+        }) : []
+      }
+
+      // Log the photos array for debugging
+      if (validatedData.photos && validatedData.photos.length > 0) {
+        console.log(`[getNewsItem] News has ${validatedData.photos.length} photos`);
+        validatedData.photos.forEach((photo, index) => {
+          console.log(`[getNewsItem] Photo ${index + 1}: ${photo.photo_url}`);
+        });
+      } else {
+        console.log(`[getNewsItem] News has no photos`);
       }
 
       console.log(`Validated news item data:`, validatedData)
@@ -1220,6 +1262,56 @@ export const notificationsApi = {
 
 // Member API service
 export const memberApi = {
+  // Create a new user with username and password
+  createUser: async (userData: { user_data: { username: string; password: string }; biodata: BiodataFormData }): Promise<any> => {
+    try {
+      console.log('[API] Creating a new user with username and password');
+
+      // Format the data according to the API schema with exact field order
+      const apiData = {
+        user_data: {
+          username: userData.user_data.username,
+          password: userData.user_data.password
+        },
+        biodata: {
+          full_name: userData.biodata.full_name,
+          email: userData.biodata.email,
+          phone_number: userData.biodata.phone_number,
+          birth_place: userData.biodata.birth_place,
+          birth_date: userData.biodata.birth_date,
+          division: userData.biodata.division,
+          address: userData.biodata.address,
+          photo_url: userData.biodata.photo_url || ""
+        }
+      };
+
+      console.log('[API] User creation data being sent:', {
+        ...apiData,
+        user_data: { ...apiData.user_data, password: '******' } // Mask password in logs
+      });
+
+      const response = await withRetry(() =>
+        apiClient.post('/members/create_user', apiData)
+      );
+
+      console.log('[API] Successfully created new user');
+      return response.data;
+    } catch (error) {
+      console.error('[API] Error creating new user:', error);
+
+      // Log detailed error information
+      if (axios.isAxiosError(error)) {
+        console.error('[API] Axios error details:', {
+          message: error.message,
+          status: error.response?.status,
+          data: error.response?.data
+        });
+      }
+
+      throw error;
+    }
+  },
+
   // Get all members
   getMembers: async (signal?: AbortSignal, filters?: { age_gt?: number }): Promise<MemberResponse> => {
     try {

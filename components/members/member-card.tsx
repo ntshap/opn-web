@@ -74,7 +74,7 @@ export function MemberCard({ member, onEdit, onDelete }: MemberCardProps) {
 
           {member.age && member.age > 0 && (
             <span className="text-sm text-gray-500">
-              Umur: {member.age} tahun
+              Usia: {member.age} tahun
             </span>
           )}
         </div>

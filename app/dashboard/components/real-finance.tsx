@@ -26,8 +26,8 @@ export function RealFinance() {
           throw new Error("Authentication required")
         }
 
-        // Use the local API proxy instead of direct backend call
-        const response = await fetch('/api/v1/finance/summary', {
+        // Use direct backend URL instead of local API proxy
+        const response = await fetch('https://beopn.mysesa.site/api/v1/finance/summary', {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`

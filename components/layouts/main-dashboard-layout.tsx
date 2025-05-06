@@ -135,9 +135,9 @@ export function MainDashboardLayout({ children }: { children: React.ReactNode })
 
       {/* Mobile Sidebar */}
       <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-        <SheetContent side="left" className="w-[250px] sm:w-[300px] p-0">
-          <div className="flex h-14 items-center border-b px-6">
-            <Link href="/dashboard" className="flex items-center gap-3 font-bold text-xl">
+        <SheetContent side="left" className="w-[280px] sm:w-[300px] p-0 max-w-[90vw]">
+          <div className="flex h-14 items-center border-b px-4 sm:px-6">
+            <Link href="/dashboard" className="flex items-center gap-2 sm:gap-3 font-bold text-lg sm:text-xl" onClick={() => setIsMobileMenuOpen(false)}>
               <div className="flex items-center justify-center w-7 h-7 rounded-full bg-white overflow-hidden">
                 <Image
                   src="/images/opn-logo.png"
@@ -151,13 +151,13 @@ export function MainDashboardLayout({ children }: { children: React.ReactNode })
               <span className="text-primary">OPN</span>
             </Link>
           </div>
-          <div className="py-4">
+          <div className="py-4 overflow-y-auto max-h-[calc(100vh-8rem)]">
             <nav className="flex flex-col gap-1 px-2">
               {menuItems.map((item) => (
                 <Link
                   key={item.path}
                   href={item.path}
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors
+                  className={`flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium transition-colors
                     ${pathname === item.path ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
@@ -168,15 +168,28 @@ export function MainDashboardLayout({ children }: { children: React.ReactNode })
             </nav>
           </div>
           <div className="mt-auto border-t p-4">
-            <div className="flex items-center gap-3">
-              <Avatar>
-                <AvatarImage src="https://ui-avatars.com/api/?name=Admin+User" />
-                <AvatarFallback>AU</AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="text-sm font-medium">Admin User</p>
-                <p className="text-xs text-muted-foreground">admin@example.com</p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Avatar>
+                  <AvatarImage src="https://ui-avatars.com/api/?name=Admin+User" />
+                  <AvatarFallback>AU</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="text-sm font-medium">Admin User</p>
+                  <p className="text-xs text-muted-foreground">admin@example.com</p>
+                </div>
               </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-red-600"
+                onClick={() => {
+                  localStorage.removeItem('token');
+                  window.location.href = '/login?t=' + new Date().getTime();
+                }}
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </SheetContent>
@@ -185,7 +198,7 @@ export function MainDashboardLayout({ children }: { children: React.ReactNode })
       {/* Main Content */}
       <div className="flex flex-1 flex-col">
         {/* Header */}
-        <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:px-6">
+        <header className="sticky top-0 z-10 flex h-14 items-center gap-2 sm:gap-4 border-b bg-background px-2 sm:px-6">
           <SheetTrigger asChild className="md:hidden">
             <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(true)}>
               <Menu className="h-5 w-5" />
@@ -195,7 +208,7 @@ export function MainDashboardLayout({ children }: { children: React.ReactNode })
 
           <SidebarTrigger className="hidden md:flex" />
 
-          <div className="flex flex-1 items-center gap-4">
+          <div className="flex flex-1 items-center gap-2 sm:gap-4">
             <form className="hidden md:block flex-1 md:max-w-xs">
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -206,7 +219,7 @@ export function MainDashboardLayout({ children }: { children: React.ReactNode })
                 />
               </div>
             </form>
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-1 sm:gap-2">
               <Button variant="ghost" size="icon" className="relative">
                 <Bell className="h-5 w-5" />
                 <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-destructive"></span>
@@ -244,15 +257,15 @@ export function MainDashboardLayout({ children }: { children: React.ReactNode })
                   window.location.href = '/login?t=' + new Date().getTime();
                 }}
               >
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Keluar</span>
+                <LogOut className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Keluar</span>
               </Button>
             </div>
           </div>
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-auto">{children}</main>
+        <main className="flex-1 overflow-auto p-2 sm:p-4 md:p-6">{children}</main>
       </div>
     </div>
   )

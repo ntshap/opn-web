@@ -60,7 +60,7 @@ export default function MembersPage() {
   }
 
   // Member mutations
-  const { createMember, updateBiodata, deleteUser } = useMemberMutations()
+  const { createUser, updateBiodata, deleteUser } = useMemberMutations()
 
   // Process members data
   const allMembers = Object.entries(membersData || {}).flatMap(([_, members]) => members || []) as Member[]
@@ -91,7 +91,7 @@ export default function MembersPage() {
 
   // Handle create member
   const handleCreateMember = (data: any) => {
-    createMember.mutate(data, {
+    createUser.mutate(data, {
       onSuccess: () => {
         setIsAddDialogOpen(false)
         // Use setTimeout to delay the refetch to avoid race conditions
@@ -189,7 +189,7 @@ export default function MembersPage() {
             </DialogHeader>
             <MemberForm
               onSubmit={handleCreateMember}
-              isSubmitting={createMember.isPending}
+              isSubmitting={createUser.isPending}
               isEditMode={false}
             />
           </DialogContent>
@@ -219,15 +219,15 @@ export default function MembersPage() {
                   }}
                 >
                   <Filter className="mr-2 h-4 w-4" />
-                  Filter Umur
+                  Filter Usia
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-80">
                 <div className="space-y-4">
-                  <h4 className="font-medium">Filter berdasarkan umur</h4>
+                  <h4 className="font-medium">Filter berdasarkan usia</h4>
                   <div className="space-y-2">
                     <div className="flex flex-col gap-2">
-                      <Label htmlFor="age-filter">Umur minimal:</Label>
+                      <Label htmlFor="age-filter">Usia minimal:</Label>
                       <Input
                         id="age-filter"
                         type="number"
@@ -273,7 +273,7 @@ export default function MembersPage() {
 
             {ageFilter && (
               <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                Umur ≥ {ageFilter}
+                Usia ≥ {ageFilter}
                 <button
                   onClick={() => setAgeFilter(null)}
                   className="ml-1 hover:text-blue-900"

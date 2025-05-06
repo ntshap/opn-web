@@ -178,12 +178,12 @@ export default function EventsPageClient() {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-3xl font-medium">Daftar Acara</h1>
+    <div className="container mx-auto py-4 sm:py-6 space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+        <h1 className="text-2xl sm:text-3xl font-medium">Daftar Acara</h1>
         <button
           onClick={() => router.push("/dashboard/events/new")}
-          className="flex items-center text-blue-600 py-2 px-4 rounded"
+          className="flex items-center text-blue-600 py-2 px-3 sm:px-4 rounded text-sm sm:text-base"
           style={{
             backgroundColor: '#e0f2fe',
             border: 'none',
@@ -191,12 +191,12 @@ export default function EventsPageClient() {
             fontWeight: 400
           }}
         >
-          <Plus className="mr-2 h-4 w-4" />
+          <Plus className="mr-1 sm:mr-2 h-4 w-4" />
           Buat Acara Baru
         </button>
       </div>
 
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
         <div className="w-full">
           <EventSearchForm
             onSearch={handleSearch}
@@ -204,7 +204,7 @@ export default function EventsPageClient() {
             onReset={handleResetSearch}
           />
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 self-end sm:self-auto">
           <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as "grid" | "table")}>
             <TabsList>
               <TabsTrigger value="grid">Grid</TabsTrigger>
@@ -306,13 +306,13 @@ export default function EventsPageClient() {
       )}
 
       {!isSearching && displayedEvents.length > 0 && viewMode === "table" && (
-        <div className="rounded-md border">
+        <div className="rounded-md border responsive-table">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Nama Acara</TableHead>
-                <TableHead>Tanggal</TableHead>
-                <TableHead>Lokasi</TableHead>
+                <TableHead className="hidden sm:table-cell">Tanggal</TableHead>
+                <TableHead className="hidden md:table-cell">Lokasi</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
@@ -320,15 +320,21 @@ export default function EventsPageClient() {
             <TableBody>
               {displayedEvents.map((event) => (
                 <TableRow key={event.id}>
-                  <TableCell className="font-medium">{event.title}</TableCell>
-                  <TableCell>
+                  <TableCell className="font-medium">
+                    {event.title}
+                    <div className="sm:hidden text-xs text-muted-foreground mt-1">
+                      {formatEventDate(event.date)}
+                      {event.time && ` • ${event.time}`}
+                    </div>
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell">
                     {formatEventDate(event.date)}
                     {event.time && ` • ${event.time}`}
                   </TableCell>
-                  <TableCell>{event.location}</TableCell>
+                  <TableCell className="hidden md:table-cell">{event.location}</TableCell>
                   <TableCell>
                     <button
-                      className="py-1 px-3 rounded"
+                      className="py-1 px-2 sm:px-3 rounded text-xs sm:text-sm"
                       style={{
                         backgroundColor: event.status === "selesai" ? "#dcfce7" : "#dbeafe",
                         color: event.status === "selesai" ? "#166534" : "#1e40af",
@@ -341,10 +347,11 @@ export default function EventsPageClient() {
                     </button>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end space-x-2">
+                    <div className="flex justify-end space-x-1 sm:space-x-2">
                       <Button
                         variant="ghost"
                         size="sm"
+                        className="h-8 w-8 p-0 sm:h-9 sm:w-9"
                         onClick={() => handleOpenAttendance(event)}
                       >
                         <UserCheck className="h-4 w-4" />
@@ -353,6 +360,7 @@ export default function EventsPageClient() {
                       <Button
                         variant="ghost"
                         size="sm"
+                        className="h-8 w-8 p-0 sm:h-9 sm:w-9"
                         onClick={() => router.push(`/dashboard/events/${event.id}`)}
                       >
                         <Eye className="h-4 w-4" />
@@ -361,12 +369,18 @@ export default function EventsPageClient() {
                       <Button
                         variant="ghost"
                         size="sm"
+                        className="h-8 w-8 p-0 sm:h-9 sm:w-9"
                         onClick={() => router.push(`/dashboard/events/${event.id}/edit`)}
                       >
                         <Edit2 className="h-4 w-4" />
                         <span className="sr-only">Edit</span>
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDeleteEvent(event)}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 sm:h-9 sm:w-9"
+                        onClick={() => handleDeleteEvent(event)}
+                      >
                         <Trash2 className="h-4 w-4" />
                         <span className="sr-only">Delete</span>
                       </Button>
@@ -380,9 +394,9 @@ export default function EventsPageClient() {
       )}
 
       {Object.keys(searchFilters).length === 0 && displayedEvents.length > 0 && (
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-2">
-            <p className="text-sm text-muted-foreground">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Menampilkan {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, events.length)} dari{" "}
               {events.length} acara
             </p>
@@ -393,7 +407,7 @@ export default function EventsPageClient() {
                 setCurrentPage(1)
               }}
             >
-              <SelectTrigger className="w-[70px]">
+              <SelectTrigger className="h-8 w-[60px] sm:h-9 sm:w-[70px] text-xs sm:text-sm">
                 <SelectValue placeholder={itemsPerPage} />
               </SelectTrigger>
               <SelectContent>
@@ -404,23 +418,25 @@ export default function EventsPageClient() {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex space-x-2">
+          <div className="flex space-x-2 w-full sm:w-auto justify-between sm:justify-start">
             <Button
               variant="outline"
               size="sm"
+              className="flex-1 sm:flex-initial justify-center"
               onClick={handlePreviousPage}
               disabled={currentPage === 1}
             >
               <ChevronLeft className="h-4 w-4" />
-              <span className="ml-1">Sebelumnya</span>
+              <span className="ml-1 hidden sm:inline">Sebelumnya</span>
             </Button>
             <Button
               variant="outline"
               size="sm"
+              className="flex-1 sm:flex-initial justify-center"
               onClick={handleNextPage}
               disabled={currentPage * itemsPerPage >= events.length}
             >
-              <span className="mr-1">Selanjutnya</span>
+              <span className="mr-1 hidden sm:inline">Selanjutnya</span>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>

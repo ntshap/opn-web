@@ -333,22 +333,43 @@ export function TipTapEditor({ content, onChange, placeholder, className = '' }:
 }
 
 export function TipTapContent({ content }: { content: string }) {
+  // Log the content for debugging
+  console.log('[TipTapContent] Received content:', content);
+
   // Check if content is empty, null, undefined, or just HTML tags with no text
   const isEmpty = !content || content.trim() === '' || content.replace(/<[^>]*>/g, '').trim() === '';
 
   if (isEmpty) {
+    console.log('[TipTapContent] Content is empty');
     return (
       <div className="border rounded-md p-4 min-h-[100px] flex items-center justify-center text-gray-400">
-        Belum ada notulensi untuk acara ini
+        Belum ada deskripsi untuk berita ini
       </div>
     )
   }
 
-  // Process content to ensure proper formatting for ordered lists
+  // Process content to ensure proper formatting
   let processedContent = content;
 
+  // Handle plain text content (no HTML tags)
+  if (!processedContent.includes('<')) {
+    console.log('[TipTapContent] Content appears to be plain text, wrapping in paragraphs');
+    // Split by newlines and wrap each paragraph
+    processedContent = processedContent
+      .split('\n')
+      .map(para => para.trim())
+      .filter(para => para.length > 0)
+      .map(para => `<p>${para}</p>`)
+      .join('');
+
+    // If still empty after processing, add a single paragraph
+    if (!processedContent) {
+      processedContent = `<p>${content}</p>`;
+    }
+  }
   // Ensure ordered lists have the proper structure with <p> tags inside <li> elements
-  if (processedContent.includes('<ol>') || processedContent.includes('<ol ')) {
+  else if (processedContent.includes('<ol>') || processedContent.includes('<ol ')) {
+    console.log('[TipTapContent] Processing ordered lists');
     // Use regex to ensure each list item has proper <p> tags
     processedContent = processedContent.replace(/<li>(.*?)<\/li>/g, (match, content) => {
       // If content doesn't already have <p> tags, wrap it
@@ -358,10 +379,28 @@ export function TipTapContent({ content }: { content: string }) {
       return match;
     });
   }
+  // Ensure content has proper paragraph tags if it doesn't have any block elements
+  else if (!processedContent.includes('<p>') &&
+           !processedContent.includes('<div>') &&
+           !processedContent.includes('<ul>') &&
+           !processedContent.includes('<ol>') &&
+           !processedContent.includes('<h1>') &&
+           !processedContent.includes('<h2>') &&
+           !processedContent.includes('<h3>')) {
+    console.log('[TipTapContent] No block elements found, wrapping content in paragraph');
+    processedContent = `<p>${processedContent}</p>`;
+  }
 
+  console.log('[TipTapContent] Processed content:', processedContent);
+
+  // Use a simpler structure without border to match the news card style
   return (
-    <div className="border rounded-md p-4 min-h-[100px] prose max-w-none">
-      <div dangerouslySetInnerHTML={{ __html: processedContent }} />
+    <div className="prose prose-sm sm:prose-base max-w-none">
+      <div
+        dangerouslySetInnerHTML={{ __html: processedContent }}
+        className="prose-content"
+        style={{ display: 'block', visibility: 'visible' }}
+      />
     </div>
   )
 }

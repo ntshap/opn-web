@@ -3,9 +3,10 @@
  * Handles POST, PUT, and DELETE requests for finance documents
  *
  * Endpoints:
- * - POST /api/v1/uploads/finances/{finance_id}/document - Upload a new document
- * - PUT /api/v1/uploads/finances/{finance_id}/document - Update an existing document
+ * - PUT /api/v1/uploads/finances/{finance_id}/document - Upload or update a document
  * - DELETE /api/v1/uploads/finances/{finance_id}/document - Delete a document
+ *
+ * Note: We use PUT for both new uploads and updates as per backend requirements
  */
 import type { NextRequest } from 'next/server';
 import { handleApiRoute } from '../../../../_helpers/api-route-handler';

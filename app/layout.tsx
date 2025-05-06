@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Providers } from "./providers"
 import "./globals.css"
 import "./light-mode-override.css"
@@ -11,6 +11,13 @@ export const metadata: Metadata = {
       { url: "/images/opn-logo.png", type: "image/png" },
     ],
   },
+}
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
 }
 
 export default function RootLayout({

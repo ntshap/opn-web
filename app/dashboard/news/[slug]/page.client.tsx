@@ -17,6 +17,7 @@ import { id } from "date-fns/locale"
 import { Badge } from "@/components/ui/badge"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { TipTapContent } from "@/components/ui/tiptap-editor"
+import "./news-detail.css"
 
 export default function NewsDetailPageClient({ slug }: { slug: string }) {
   const router = useRouter()
@@ -32,9 +33,23 @@ export default function NewsDetailPageClient({ slug }: { slug: string }) {
   useEffect(() => {
     if (newsItem) {
       console.log('News item data:', newsItem)
+
+      // Log description details
+      if (newsItem.description) {
+        console.log('News description type:', typeof newsItem.description)
+        console.log('News description length:', newsItem.description.length)
+        console.log('News description sample:', newsItem.description.substring(0, 100))
+        console.log('News description contains HTML tags:', newsItem.description.includes('<'))
+      } else {
+        console.warn('News description is empty or undefined')
+      }
+
+      // Log photo details
       if (newsItem.photos && newsItem.photos.length > 0) {
         console.log('News photo URL:', newsItem.photos[0].photo_url)
         console.log('Formatted photo URL:', formatImageUrl(newsItem.photos[0].photo_url))
+      } else {
+        console.log('News has no photos')
       }
     }
   }, [newsItem])
@@ -262,7 +277,7 @@ export default function NewsDetailPageClient({ slug }: { slug: string }) {
               {formatDate(newsItem.date)}
             </div>
           </div>
-          <CardTitle className="text-2xl md:text-3xl">{newsItem.title}</CardTitle>
+          <CardTitle className="text-2xl md:text-3xl break-words">{newsItem.title}</CardTitle>
           <CardDescription className="flex items-center mt-2">
             <User className="h-3 w-3 mr-1" />
             <span>Admin</span>
@@ -270,7 +285,7 @@ export default function NewsDetailPageClient({ slug }: { slug: string }) {
         </CardHeader>
 
         <CardContent className="space-y-6">
-          <div className="relative h-64 md:h-96 w-full rounded-md overflow-hidden">
+          <div className="news-photo-container rounded-md overflow-hidden border">
             {/* Log the photo URL for debugging */}
             {newsItem.photos && newsItem.photos.length > 0 && newsItem.photos[0].photo_url &&
               console.log('Photo URL:', newsItem.photos[0].photo_url)
@@ -283,20 +298,36 @@ export default function NewsDetailPageClient({ slug }: { slug: string }) {
               </div>
             )}
 
-            {/* Use our new SecureImage component */}
-            <SecureImage
-              src={newsItem.photos && newsItem.photos.length > 0 ? newsItem.photos[0].photo_url : ''}
-              alt={newsItem.title}
-              width="100%"
-              height="100%"
-              className="object-cover"
-              fallbackSrc="/placeholder-news.svg"
-              style={{ position: 'absolute', top: 0, left: 0 }}
-            />
+            {/* Log the photo URL for debugging */}
+            {newsItem.photos && newsItem.photos.length > 0 && newsItem.photos[0].photo_url &&
+              console.log('Photo URL in render:', newsItem.photos[0].photo_url, 'Formatted:', formatImageUrl(newsItem.photos[0].photo_url))
+            }
+
+            {/* Check if we have a photo */}
+            {newsItem.photos && newsItem.photos.length > 0 && newsItem.photos[0].photo_url ? (
+              <div className="w-full h-full">
+                <SecureImage
+                  src={newsItem.photos[0].photo_url}
+                  alt={newsItem.title}
+                  width="100%"
+                  height="100%"
+                  className="object-cover"
+                  fallbackSrc="/placeholder-news.svg"
+                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                />
+              </div>
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+                <p className="text-gray-500">Belum ada foto untuk berita ini</p>
+              </div>
+            )}
           </div>
 
           <div className="prose max-w-none">
-            <TipTapContent content={newsItem.description} />
+            {/* Log the description for debugging */}
+            {console.log('News description:', newsItem.description)}
+            {/* Ensure we have a valid description */}
+            <TipTapContent content={newsItem.description || ''} />
           </div>
 
           {/* Photo upload component with refresh callback */}

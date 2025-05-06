@@ -129,12 +129,13 @@ export function useFinanceMutations() {
     }
   });
 
-  // Upload document mutation using the proper API function
+  // Upload document mutation using the proper API function with PUT method
   const uploadDocument = useMutation<any, Error, { financeId: number | string, file: File }>({
     mutationFn: async ({ financeId, file }: { financeId: number | string, file: File }) => {
-      console.log(`Uploading document for finance record ${financeId}`);
+      console.log(`Uploading document for finance record ${financeId} using PUT method`);
       try {
-        // Use the uploadsApi to upload the document
+        // Use the uploadsApi to upload the document with PUT method
+        // Note: We use PUT for both new uploads and updates as per backend requirements
         const response = await uploadsApi.uploadFinanceDocument(financeId, file);
         console.log('Document upload response:', response);
         return response;

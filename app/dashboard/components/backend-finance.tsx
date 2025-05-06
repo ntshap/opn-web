@@ -38,7 +38,7 @@ export function BackendFinance() {
           try {
             // Fetch finance summary with proper authentication
             // Try the correct endpoint for finance summary
-            const response = await fetch('https://backend-project-pemuda.onrender.com/api/v1/finances', {
+            const response = await fetch('https://beopn.mysesa.site/api/v1/finances', {
               method: 'GET',
               headers: {
                 'Content-Type': 'application/json',

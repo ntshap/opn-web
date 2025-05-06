@@ -1,16 +1,17 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useEventFeedback, useFeedbackMutations } from "@/hooks/useFeedback"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatDate } from "@/lib/utils"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
-import { Loader2, Trash2 } from "lucide-react"
+import { Loader2, Trash2, User } from "lucide-react"
 import { useAuth } from "@/components/auth/auth-provider"
 import { FeedbackForm } from "./feedback-form"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { useMembers } from "@/hooks/useMembers"
 // Badge styling is now handled via CSS classes
 
 interface FeedbackListProps {
@@ -28,6 +29,26 @@ export function FeedbackList({ eventId, isAdmin = false }: FeedbackListProps) {
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const { isAuthenticated } = useAuth()
 
+  // Fetch all members to get their names
+  const { data: membersData, isLoading: isMembersLoading } = useMembers()
+
+  // Create a map of member IDs to names for quick lookup
+  const memberNames = useMemo(() => {
+    const nameMap: Record<number, string> = {};
+
+    if (membersData) {
+      Object.values(membersData).forEach(members => {
+        members.forEach(member => {
+          if (member.id) {
+            nameMap[member.id] = member.full_name || `Anggota ${member.id}`;
+          }
+        });
+      });
+    }
+
+    return nameMap;
+  }, [membersData]);
+
   // Handle feedback deletion
   const handleDelete = async (id: number) => {
     setDeletingId(id)
@@ -41,7 +62,7 @@ export function FeedbackList({ eventId, isAdmin = false }: FeedbackListProps) {
   }
 
   // Loading state
-  if (isLoading) {
+  if (isLoading || isMembersLoading) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-8 w-48" />
@@ -92,8 +113,9 @@ export function FeedbackList({ eventId, isAdmin = false }: FeedbackListProps) {
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle className="text-sm text-muted-foreground">
-                      Anggota #{feedback.member_id}
+                    <CardTitle className="text-sm text-muted-foreground flex items-center">
+                      <User className="h-4 w-4 mr-1" />
+                      {feedback.full_name || memberNames[feedback.member_id] || `Anggota ${feedback.member_id}`}
                     </CardTitle>
                     <CardDescription>
                       {formatDate(feedback.created_at)}

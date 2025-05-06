@@ -13,6 +13,7 @@ export interface Feedback {
   member_id: number;
   event_id: number;
   created_at: string;
+  full_name?: string; // Add full_name field from backend response
 }
 
 export interface FeedbackFormData {

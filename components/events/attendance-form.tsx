@@ -7,10 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Check, Edit } from "lucide-react"
+import { Check, Edit, User, X } from "lucide-react"
 import { useAttendanceMutations } from "@/hooks/useEvents"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { getSavedAttendanceData, saveAttendanceData, updateAttendanceData } from "@/utils/attendance-utils"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 
 // This interface represents an existing attendance record
 interface Attendee {
@@ -41,9 +44,13 @@ export function AttendanceForm({ eventId, attendees: initialAttendees = [], onRe
   })
   const [isEditingAll, setIsEditingAll] = useState(false)
   const [bulkEditData, setBulkEditData] = useState<Record<number, { status: string, notes: string }>>({})
+  const [activeTab, setActiveTab] = useState<string>("all")
 
   // Ensure attendees is always an array
   const [attendees, setAttendees] = useState<Attendee[]>([])
+
+  // Get unique divisions for filtering
+  const divisions = [...new Set(attendees.map(a => a.division).filter(Boolean))]
 
   // Initialize attendees from props and localStorage
   useEffect(() => {
@@ -170,35 +177,291 @@ export function AttendanceForm({ eventId, attendees: initialAttendees = [], onRe
 
   // Status colors are handled directly in the UI components
 
+  // Filter attendees by active division
+  const filteredAttendees = activeTab === "all"
+    ? attendees
+    : attendees.filter(a => a.division === activeTab)
+
+  // State for edit dialog
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle>Daftar Kehadiran</CardTitle>
+        <div className="flex items-center gap-2">
+          <User className="h-5 w-5" />
+          <CardTitle>Daftar Kehadiran</CardTitle>
+        </div>
         {attendees.length > 0 && (
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              onClick={() => {
-                setIsEditingAll(!isEditingAll);
-                if (!isEditingAll) {
-                  const initialData: Record<number, { status: string, notes: string }> = {};
-                  attendees.forEach(attendee => {
-                    initialData[attendee.id] = {
-                      status: attendee.status,
-                      notes: attendee.notes
-                    };
-                  });
-                  setBulkEditData(initialData);
-                }
-              }}
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              {isEditingAll ? 'Batal' : 'Ubah Semua'}
-            </Button>
-            {isEditingAll && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setIsEditingAll(true);
+              const initialData: Record<number, { status: string, notes: string }> = {};
+              attendees.forEach(attendee => {
+                initialData[attendee.id] = {
+                  status: attendee.status,
+                  notes: attendee.notes
+                };
+              });
+              setBulkEditData(initialData);
+            }}
+          >
+            <Edit className="h-4 w-4 mr-2" />
+            Ubah Semua
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent>
+        {attendees.length === 0 ? (
+          <Alert>
+            <AlertDescription>
+              Belum ada data kehadiran untuk acara ini.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
+            <div className="flex items-center justify-between mb-4">
+              <TabsList>
+                <TabsTrigger value="all">Semua</TabsTrigger>
+                {divisions.map(division => (
+                  <TabsTrigger key={division} value={division}>{division}</TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+
+            <TabsContent value={activeTab} className="mt-0">
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nama</TableHead>
+                      <TableHead>Divisi</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Keterangan</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredAttendees.map((attendee) => (
+                      <TableRow key={attendee.id} onClick={() => handleSelectAttendee(attendee.id)} className="cursor-pointer hover:bg-muted/50">
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            {attendee.avatar ? (
+                              <img
+                                src={attendee.avatar}
+                                alt={attendee.member_name || attendee.name || 'Anggota'}
+                                className="w-6 h-6 rounded-full"
+                              />
+                            ) : (
+                              <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
+                                <span className="text-xs">
+                                  {(() => {
+                                    const displayName = attendee.member_name || attendee.name || '';
+                                    return displayName.length > 0 ? displayName[0] : '?';
+                                  })()}
+                                </span>
+                              </div>
+                            )}
+                            {attendee.member_name || attendee.name || 'Anggota'}
+                          </div>
+                        </TableCell>
+                        <TableCell>{attendee.division || '-'}</TableCell>
+                        <TableCell>
+                          <span
+                            className={`text-xs px-3 py-1 rounded-full ${
+                              attendee.status === "Hadir" ? "bg-green-100 text-green-800" :
+                              attendee.status === "Izin" ? "bg-yellow-100 text-yellow-800" :
+                              "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {attendee.status}
+                          </span>
+                        </TableCell>
+                        <TableCell>{attendee.notes || '-'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+          </Tabs>
+        )}
+
+        {/* Edit Attendance Dialog */}
+        <Dialog open={selectedAttendee !== null} onOpenChange={(open) => !open && setSelectedAttendee(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                Edit Kehadiran: {(() => {
+                  const attendee = attendees.find(a => a.id === selectedAttendee);
+                  return attendee ? (attendee.member_name || attendee.name || 'Anggota') : 'Anggota';
+                })()}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="attendance-status">Status</Label>
+                <Select
+                  value={attendanceForm.status}
+                  onValueChange={(value) => setAttendanceForm({...attendanceForm, status: value})}
+                >
+                  <SelectTrigger id="attendance-status">
+                    <SelectValue placeholder="Pilih status kehadiran">
+                      {attendanceForm.status && (
+                        <div className="flex items-center">
+                          <span
+                            className={`w-3 h-3 rounded-full mr-2 ${
+                              attendanceForm.status === "Hadir" ? "bg-green-500" :
+                              attendanceForm.status === "Izin" ? "bg-yellow-500" :
+                              "bg-red-500"
+                            }`}
+                          ></span>
+                          {attendanceForm.status}
+                        </div>
+                      )}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Hadir">
+                      <div className="flex items-center">
+                        <span className="w-3 h-3 rounded-full bg-green-500 mr-2"></span>
+                        Hadir
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="Izin">
+                      <div className="flex items-center">
+                        <span className="w-3 h-3 rounded-full bg-yellow-500 mr-2"></span>
+                        Izin
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="Alfa">
+                      <div className="flex items-center">
+                        <span className="w-3 h-3 rounded-full bg-red-500 mr-2"></span>
+                        Alfa
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="attendance-notes">Keterangan</Label>
+                <Input
+                  id="attendance-notes"
+                  placeholder="Masukkan keterangan"
+                  value={attendanceForm.notes}
+                  onChange={(e) => setAttendanceForm({...attendanceForm, notes: e.target.value})}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setSelectedAttendee(null)}>
+                Tutup
+              </Button>
+              <Button onClick={handleSaveAttendance} disabled={createOrUpdateAttendance.isPending}>
+                {createOrUpdateAttendance.isPending ? (
+                  <span className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Menyimpan...
+                  </span>
+                ) : (
+                  "Simpan"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Bulk Edit Dialog */}
+        <Dialog open={isEditingAll} onOpenChange={setIsEditingAll}>
+          <DialogContent className="sm:max-w-[800px]">
+            <DialogHeader>
+              <DialogTitle>Ubah Semua Kehadiran</DialogTitle>
+            </DialogHeader>
+            <div className="max-h-[400px] overflow-y-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nama</TableHead>
+                    <TableHead>Divisi</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Keterangan</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {attendees.map((attendee) => (
+                    <TableRow key={attendee.id}>
+                      <TableCell className="font-medium">
+                        {attendee.member_name || attendee.name || 'Anggota'}
+                      </TableCell>
+                      <TableCell>{attendee.division || '-'}</TableCell>
+                      <TableCell>
+                        <Select
+                          value={bulkEditData[attendee.id]?.status || attendee.status}
+                          onValueChange={(value) => {
+                            setBulkEditData({
+                              ...bulkEditData,
+                              [attendee.id]: {
+                                ...bulkEditData[attendee.id],
+                                status: value
+                              }
+                            });
+                          }}
+                        >
+                          <SelectTrigger className="w-[120px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Hadir">
+                              <div className="flex items-center">
+                                <span className="w-3 h-3 rounded-full bg-green-500 mr-2"></span>
+                                Hadir
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="Izin">
+                              <div className="flex items-center">
+                                <span className="w-3 h-3 rounded-full bg-yellow-500 mr-2"></span>
+                                Izin
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="Alfa">
+                              <div className="flex items-center">
+                                <span className="w-3 h-3 rounded-full bg-red-500 mr-2"></span>
+                                Alfa
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          placeholder="Masukkan keterangan"
+                          value={bulkEditData[attendee.id]?.notes || attendee.notes || ''}
+                          onChange={(e) => {
+                            setBulkEditData({
+                              ...bulkEditData,
+                              [attendee.id]: {
+                                ...bulkEditData[attendee.id],
+                                notes: e.target.value
+                              }
+                            });
+                          }}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditingAll(false)}>
+                Tutup
+              </Button>
               <Button
-                variant="default"
-                size="sm"
                 onClick={async () => {
                   try {
                     const updateData = Object.entries(bulkEditData).map(([id, data]) => {
@@ -212,8 +475,6 @@ export function AttendanceForm({ eventId, attendees: initialAttendees = [], onRe
                     }).filter(Boolean);
 
                     if (updateData.length > 0) {
-                      console.log('[AttendanceForm] Saving bulk attendance data:', updateData);
-
                       // Update the attendees list with the new data
                       const updatedAttendees = [...attendees];
                       updateData.forEach((data: any) => {
@@ -228,24 +489,11 @@ export function AttendanceForm({ eventId, attendees: initialAttendees = [], onRe
                       });
                       setAttendees(updatedAttendees);
 
-                      // Save to localStorage using our utility function
-                      try {
-                        // Update the attendance data for all members in bulk
-                        const updateResult = updateAttendanceData(eventId, updateData);
+                      // Save to localStorage
+                      updateAttendanceData(eventId, updateData);
 
-                        if (!updateResult) {
-                          console.error("[AttendanceForm] Failed to update bulk attendance data");
-                          throw new Error("Failed to update bulk attendance data");
-                        }
-
-                        console.log(`[AttendanceForm] Successfully updated bulk attendance data in localStorage`);
-                      } catch (storageError) {
-                        console.error("[AttendanceForm] Error saving bulk data to localStorage:", storageError);
-                      }
-
-                      // Call the onRefresh callback to refresh the parent component
+                      // Call the onRefresh callback
                       if (onRefresh && typeof onRefresh === 'function') {
-                        console.log('[AttendanceForm] Calling onRefresh after bulk update');
                         onRefresh();
                       }
 
@@ -257,113 +505,11 @@ export function AttendanceForm({ eventId, attendees: initialAttendees = [], onRe
                   }
                 }}
               >
-                <Check className="h-4 w-4 mr-2" />
                 Simpan
               </Button>
-            )}
-          </div>
-        )}
-      </CardHeader>
-      <CardContent>
-        {attendees.length === 0 ? (
-          <Alert>
-            <AlertDescription>
-              Belum ada data kehadiran untuk acara ini.
-            </AlertDescription>
-          </Alert>
-        ) : (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {attendees.map((attendee) => (
-                <Button
-                  key={attendee.id}
-                  variant={selectedAttendee === attendee.id ? "default" : "outline"}
-                  className="justify-start"
-                  onClick={() => handleSelectAttendee(attendee.id)}
-                >
-                  <div className="flex items-center gap-2">
-                    {attendee.avatar ? (
-                      <img
-                        src={attendee.avatar}
-                        alt={attendee.member_name || attendee.name || 'Anggota'}
-                        className="w-6 h-6 rounded-full"
-                      />
-                    ) : (
-                      <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
-                        <span className="text-xs">
-                          {(() => {
-                            const displayName = attendee.member_name || attendee.name || '';
-                            return displayName.length > 0 ? displayName[0] : '?';
-                          })()}
-                        </span>
-                      </div>
-                    )}
-                    <span>{attendee.member_name || attendee.name || 'Anggota'}</span>
-                  </div>
-                </Button>
-              ))}
-            </div>
-
-            {selectedAttendee && (
-              <div id="edit-attendance-form" className="mt-6 border-t pt-6 bg-slate-50 p-4 rounded-md border border-slate-200 animate-fadeIn">
-                <h3 className="text-base font-semibold mb-4">
-                  Edit Kehadiran: {(() => {
-                    const attendee = attendees.find(a => a.id === selectedAttendee);
-                    return attendee ? (attendee.member_name || attendee.name || 'Anggota') : 'Anggota';
-                  })()}
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="attendance-status">Status</Label>
-                    <Select
-                      value={attendanceForm.status}
-                      onValueChange={(value) => setAttendanceForm({...attendanceForm, status: value})}
-                    >
-                      <SelectTrigger id="attendance-status">
-                        <SelectValue placeholder="Pilih status kehadiran" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Hadir">Hadir</SelectItem>
-                        <SelectItem value="Izin">Izin</SelectItem>
-                        <SelectItem value="Alfa">Alfa</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="attendance-notes">Keterangan</Label>
-                    <Input
-                      id="attendance-notes"
-                      placeholder="Tambahkan keterangan (opsional)"
-                      value={attendanceForm.notes}
-                      onChange={(e) => setAttendanceForm({...attendanceForm, notes: e.target.value})}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-2 mt-4">
-                  <Button variant="outline" onClick={() => setSelectedAttendee(null)}>Batal</Button>
-                  <Button onClick={handleSaveAttendance} disabled={createOrUpdateAttendance.isPending}>
-                    {createOrUpdateAttendance.isPending ? (
-                      <span className="flex items-center">
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Menyimpan...
-                      </span>
-                    ) : (
-                      <>
-                        <Check className="mr-2 h-4 w-4" />
-                        Simpan
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   )

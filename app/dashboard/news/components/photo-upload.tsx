@@ -69,38 +69,45 @@ export function PhotoUpload({ newsId, onPhotoUploaded }: { newsId: string, onPho
   return (
     <Card className="mt-4">
       <CardHeader>
-        <CardTitle>Upload Photo</CardTitle>
+        <CardTitle>Ganti Foto Berita</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="mb-2"
-          />
-          <Button
-            onClick={handleUpload}
-            disabled={!file || isUploading}
-          >
-            {isUploading ? "Uploading..." : "Upload Photo"}
-          </Button>
-        </div>
-
-        {uploadedPhotoUrl && (
-          <div className="mt-4">
-            <div className="border rounded p-2">
-              <SecureImage
-                src={uploadedPhotoUrl}
-                alt="Uploaded"
-                width={300}
-                height={200}
-                className="mx-auto"
-              />
-            </div>
+        <p className="text-sm text-muted-foreground mb-2">
+          Upload foto baru untuk menggantikan foto yang sudah ada. Foto yang baru diupload akan langsung menggantikan foto yang lama.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4 items-start">
+          <div className="flex-1">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="mb-2 w-full"
+            />
+            <Button
+              onClick={handleUpload}
+              disabled={!file || isUploading}
+              className="w-full sm:w-auto"
+            >
+              {isUploading ? "Sedang Mengupload..." : "Upload Foto Baru"}
+            </Button>
           </div>
-        )}
+
+          {uploadedPhotoUrl && (
+            <div className="w-full sm:w-1/3">
+              <div className="border rounded p-2">
+                <p className="text-sm font-medium mb-2 text-center">Foto Baru</p>
+                <SecureImage
+                  src={uploadedPhotoUrl}
+                  alt="Foto baru yang diupload"
+                  width="100%"
+                  height={150}
+                  className="mx-auto object-cover"
+                />
+              </div>
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   )

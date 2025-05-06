@@ -42,21 +42,44 @@ export function SimpleImage({
           return;
         }
 
+        // Reset error state when trying to load a new image
+        if (isMounted) setError(false);
+
         console.log(`[SimpleImage] Loading image: ${src}`);
+
+        // Log more details about the image URL
+        if (src.includes('uploads')) {
+          console.log(`[SimpleImage] Image URL contains 'uploads' path: ${src}`);
+        }
+
+        if (src.startsWith('http')) {
+          console.log(`[SimpleImage] Image URL is absolute: ${src}`);
+        } else {
+          console.log(`[SimpleImage] Image URL is relative: ${src}`);
+        }
+
+        // Additional debugging for news detail page
+        if (window.location.pathname.includes('/news/')) {
+          console.log(`[SimpleImage] On news detail page, loading image: ${src}`);
+          console.log(`[SimpleImage] Current pathname: ${window.location.pathname}`);
+        }
 
         // Use our utility function to fetch the image with authentication
         objectUrl = await fetchImageAsBlob(src);
 
         if (!objectUrl) {
+          console.error(`[SimpleImage] Failed to fetch image: ${src}`);
           throw new Error('Failed to fetch image');
         }
+
+        console.log(`[SimpleImage] Successfully loaded image: ${src}, blob URL: ${objectUrl.substring(0, 30)}...`);
 
         if (isMounted) {
           setImageSrc(objectUrl);
           setLoading(false);
         }
       } catch (e) {
-        console.error(`[SimpleImage] Error:`, e);
+        console.error(`[SimpleImage] Error loading image from ${src}:`, e);
         if (isMounted) {
           setError(true);
           setLoading(false);
@@ -64,6 +87,18 @@ export function SimpleImage({
       }
     };
 
+    // Reset states when src changes
+    setLoading(true);
+    setError(false);
+    setImageSrc(null);
+
+    // If we have a previous objectUrl, revoke it
+    if (objectUrl) {
+      URL.revokeObjectURL(objectUrl);
+      objectUrl = null;
+    }
+
+    // Load the new image
     loadImage();
 
     return () => {
@@ -87,6 +122,8 @@ export function SimpleImage({
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: '#f0f0f0',
+          position: 'relative',
+          overflow: 'hidden',
           ...style
         }}
       >
@@ -97,7 +134,7 @@ export function SimpleImage({
             style={{
               maxWidth: '100%',
               maxHeight: '100%',
-              objectFit: 'contain'
+              objectFit: 'cover'
             }}
           />
         ) : (

@@ -67,6 +67,29 @@ export function useMemberMutations() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
+  const createUser = useMutation({
+    mutationFn: (data: any) => memberApi.createUser(data),
+    onSuccess: () => {
+      // Invalidate all member queries to refetch the list
+      queryClient.invalidateQueries({ queryKey: memberKeys.lists() })
+
+      // Show success toast
+      toast({
+        title: "Berhasil",
+        description: "Pengguna baru berhasil ditambahkan",
+      })
+    },
+    onError: (error) => {
+      // Show error toast
+      toast({
+        title: "Gagal",
+        description: "Terjadi kesalahan saat menambahkan pengguna baru",
+        variant: "destructive",
+      })
+      console.error("Error creating user:", error)
+    }
+  })
+
   const createMember = useMutation({
     mutationFn: (data: MemberFormData) => memberApi.createMember(data),
     onSuccess: () => {
@@ -165,6 +188,7 @@ export function useMemberMutations() {
   })
 
   return {
+    createUser,
     createMember,
     createBiodata,
     updateBiodata,

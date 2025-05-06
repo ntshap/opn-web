@@ -73,7 +73,7 @@ export function NewsCard({
             {formatDate(date)}
           </div>
         </div>
-        <CardTitle className="line-clamp-2">{title}</CardTitle>
+        <CardTitle className="card-title">{title}</CardTitle>
         <CardDescription className="line-clamp-3">
           <div className="news-card-description">
             {/* Use TipTapContent for formatted description */}

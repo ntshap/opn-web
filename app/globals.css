@@ -206,6 +206,62 @@
   text-wrap: pretty;
 }
 
+/* Responsive form improvements */
+@media (max-width: 640px) {
+  .form-row {
+    @apply flex-col gap-2;
+  }
+
+  .form-row > * {
+    @apply w-full;
+  }
+
+  .form-field {
+    @apply mb-4;
+  }
+
+  input, select, textarea {
+    @apply text-base;
+  }
+
+  button {
+    @apply min-h-10;
+  }
+
+  /* Dashboard page improvements */
+  h1 {
+    @apply text-2xl;
+  }
+
+  h2 {
+    @apply text-xl;
+  }
+
+  .container {
+    @apply px-3;
+  }
+
+  /* Improve table display on mobile */
+  .responsive-table {
+    @apply block w-full overflow-x-auto -mx-3 px-3;
+  }
+
+  /* Improve card layouts */
+  .card-grid {
+    @apply grid-cols-1;
+  }
+
+  /* Improve spacing */
+  .space-y-6 {
+    @apply space-y-4;
+  }
+
+  /* Improve action buttons */
+  .action-buttons {
+    @apply flex-wrap gap-2;
+  }
+}
+
 /* Rich Text Editor Styles */
 
 /* Placeholder styles */
