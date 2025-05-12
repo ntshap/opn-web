@@ -106,11 +106,14 @@ export async function GET(request: NextRequest) {
     // Make the request to the backend with explicit GET method
     // Add timeout to prevent hanging requests
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout for faster response
 
     try {
       // Add a timestamp to the URL to prevent caching
       const urlWithTimestamp = `${fullUrl}${fullUrl.includes('?') ? '&' : '?'}_t=${Date.now()}`;
+
+      // Add priority header for faster loading
+      requestHeaders['Priority'] = 'high';
 
       const response = await fetch(urlWithTimestamp, {
         method: 'GET', // Explicitly use GET method, not OPTIONS
@@ -150,11 +153,14 @@ export async function GET(request: NextRequest) {
       const contentType = response.headers.get('content-type') || 'application/octet-stream';
 
       // Return the response with the correct content type
+      // Use no-cache to ensure fresh images
       return new NextResponse(buffer, {
         status: 200,
         headers: {
           'Content-Type': contentType,
-          'Cache-Control': 'public, max-age=3600',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
         },
       });
     } catch (fetchError) {

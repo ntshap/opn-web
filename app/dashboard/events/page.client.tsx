@@ -57,7 +57,11 @@ export default function EventsPageClient() {
 
   // Search events with filters
   const { data: searchResults = [], isLoading: isSearching } = useSearchEvents(
-    searchFilters,
+    {
+      ...searchFilters,
+      page: currentPage,
+      limit: itemsPerPage
+    },
     {
       enabled: Object.keys(searchFilters).length > 0,
     }
@@ -116,7 +120,16 @@ export default function EventsPageClient() {
   }
 
   const handleNextPage = () => {
-    setCurrentPage(currentPage + 1)
+    // Check if there are more pages to navigate to
+    // We'll assume there are more pages if the current page has a full set of items
+    if (events.length >= itemsPerPage) {
+      setCurrentPage(currentPage + 1)
+    }
+  }
+
+  // Function to change page directly
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
   }
 
   // Handle opening attendance popup
@@ -397,8 +410,7 @@ export default function EventsPageClient() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-xs sm:text-sm text-muted-foreground">
-              Menampilkan {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, events.length)} dari{" "}
-              {events.length} acara
+              Menampilkan {displayedEvents.length} acara
             </p>
             <Select
               value={String(itemsPerPage)}
@@ -418,23 +430,29 @@ export default function EventsPageClient() {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex space-x-2 w-full sm:w-auto justify-between sm:justify-start">
+          <div className="flex items-center space-x-2">
             <Button
               variant="outline"
               size="sm"
               className="flex-1 sm:flex-initial justify-center"
               onClick={handlePreviousPage}
-              disabled={currentPage === 1}
+              disabled={currentPage === 1 || isLoading}
             >
               <ChevronLeft className="h-4 w-4" />
               <span className="ml-1 hidden sm:inline">Sebelumnya</span>
             </Button>
+
+            {/* Page number indicator */}
+            <span className="text-sm mx-2">
+              Halaman {currentPage}
+            </span>
+
             <Button
               variant="outline"
               size="sm"
               className="flex-1 sm:flex-initial justify-center"
               onClick={handleNextPage}
-              disabled={currentPage * itemsPerPage >= events.length}
+              disabled={displayedEvents.length < itemsPerPage || isLoading}
             >
               <span className="mr-1 hidden sm:inline">Selanjutnya</span>
               <ChevronRight className="h-4 w-4" />

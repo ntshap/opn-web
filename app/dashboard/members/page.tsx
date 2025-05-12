@@ -27,11 +27,14 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 
 import { MemberForm } from "@/components/members/member-form"
 import { MemberCard } from "@/components/members/member-card"
-import { useMembers, useMemberMutations } from "@/hooks/useMembers"
+import { MemberPhotoUpload } from "@/components/members/member-photo-upload"
+import { useMembers, useMemberMutations, memberKeys } from "@/hooks/useMembers"
 import { Member } from "@/lib/api-service" // Updated path
 import { Skeleton } from "@/components/ui/skeleton"
+import { useQueryClient } from "@tanstack/react-query"
 
 export default function MembersPage() {
+  const queryClient = useQueryClient()
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState("all")
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
@@ -51,7 +54,10 @@ export default function MembersPage() {
   const handleRefetch = async () => {
     try {
       setIsRefetching(true)
+      // Force cache invalidation to ensure we get fresh data
+      await queryClient.invalidateQueries({ queryKey: memberKeys.lists() })
       await refetch()
+      console.log("Members data refreshed successfully")
     } catch (error) {
       console.error("Error refetching members:", error)
     } finally {
@@ -358,28 +364,40 @@ export default function MembersPage() {
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Anggota</DialogTitle>
           </DialogHeader>
           {selectedMember && (
-            <MemberForm
-              defaultValues={{
-                full_name: selectedMember.full_name || '',
-                division: selectedMember.division || '',
-                email: selectedMember.email || '',
-                phone_number: selectedMember.phone_number || '',
-                birth_date: selectedMember.birth_date ? new Date(selectedMember.birth_date) : new Date(),
-                birth_place: selectedMember.birth_place || '',
-                address: selectedMember.address || '',
-                // Use existing data or defaults
-                username: selectedMember.username || '',
-                role: selectedMember.role || 'member',
-              }}
-              onSubmit={handleEditMember}
-              isSubmitting={updateBiodata.isPending}
-              isEditMode={true}
-            />
+            <>
+              <MemberForm
+                defaultValues={{
+                  full_name: selectedMember.full_name || '',
+                  division: selectedMember.division || '',
+                  email: selectedMember.email || '',
+                  phone_number: selectedMember.phone_number || '',
+                  birth_date: selectedMember.birth_date ? new Date(selectedMember.birth_date) : new Date(),
+                  birth_place: selectedMember.birth_place || '',
+                  address: selectedMember.address || '',
+                  // Use existing data or defaults
+                  username: selectedMember.username || '',
+                  role: selectedMember.role || 'member',
+                }}
+                onSubmit={handleEditMember}
+                isSubmitting={updateBiodata.isPending}
+                isEditMode={true}
+              />
+
+              {/* Add photo upload component */}
+              <MemberPhotoUpload
+                memberId={selectedMember.id}
+                currentPhotoUrl={selectedMember.photo_url}
+                onPhotoUploaded={() => {
+                  // Refresh the members list to show the updated photo
+                  handleRefetch();
+                }}
+              />
+            </>
           )}
         </DialogContent>
       </Dialog>

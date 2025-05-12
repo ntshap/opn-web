@@ -63,51 +63,84 @@ export const ProtectedImage: React.FC<ProtectedImageProps> = ({
       return;
     }
 
+    // Add a cache-busting parameter to ensure we get fresh images
+    const cacheBuster = Date.now();
+
     // Use our improved image-proxy endpoint that ensures GET method with Bearer token
     // This avoids the OPTIONS preflight request and ensures proper authentication
-    const proxyUrl = `/api/v1/image-proxy?url=${encodeURIComponent(formattedUrl)}&token=${encodeURIComponent(token)}`;
-    console.log(`[ProtectedImage] Using improved image-proxy URL: ${proxyUrl}`);
+    const proxyUrl = `/api/v1/image-proxy?url=${encodeURIComponent(formattedUrl)}&token=${encodeURIComponent(token)}&_=${cacheBuster}`;
+    console.log(`[ProtectedImage] Using improved image-proxy URL with cache buster: ${proxyUrl}`);
 
     // Create a new AbortController for this request
     const controller = new AbortController();
     const { signal } = controller;
 
-    // Create an image element directly with the URL
-    // This avoids the OPTIONS preflight request that happens with fetch
-    const img = new Image();
-
-    // Set up load and error handlers before setting src
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-
-      const ctx = canvas.getContext('2d');
-      ctx?.drawImage(img, 0, 0);
-
-      // Convert to blob and create object URL
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const objectUrl = URL.createObjectURL(blob);
-          setImageSrc(objectUrl);
-          setIsLoading(false);
-        } else {
-          console.error(`[ProtectedImage] Failed to create blob from image`);
-          setIsError(true);
-          setIsLoading(false);
-        }
-      });
-    };
-
-    img.onerror = () => {
-      console.error(`[ProtectedImage] Error loading image: ${formattedUrl}`);
-      setIsError(true);
+    // Use fetch with priority to load the image faster
+    fetch(proxyUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'image/*',
+        'Cache-Control': 'no-cache',
+        'Priority': 'high'
+      },
+      cache: 'no-store',
+      signal,
+      priority: 'high'
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Failed to load image: ${response.status} ${response.statusText}`);
+      }
+      return response.blob();
+    })
+    .then(blob => {
+      const objectUrl = URL.createObjectURL(blob);
+      setImageSrc(objectUrl);
       setIsLoading(false);
-    };
+      console.log(`[ProtectedImage] Image loaded successfully via fetch: ${formattedUrl}`);
+    })
+    .catch(error => {
+      console.error(`[ProtectedImage] Error loading image via fetch: ${formattedUrl}`, error);
 
-    // Add authorization header via a server-side proxy
-    // This ensures we use GET and include the Bearer token
-    img.src = `/api/v1/image-proxy?url=${encodeURIComponent(formattedUrl)}&token=${encodeURIComponent(token)}`;
+      // Fallback to Image element approach if fetch fails
+      console.log(`[ProtectedImage] Falling back to Image element approach`);
+
+      const img = new Image();
+
+      img.onload = () => {
+        console.log(`[ProtectedImage] Image loaded successfully via Image element: ${formattedUrl}`);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0);
+
+        // Convert to blob and create object URL
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const objectUrl = URL.createObjectURL(blob);
+            setImageSrc(objectUrl);
+            setIsLoading(false);
+          } else {
+            console.error(`[ProtectedImage] Failed to create blob from image`);
+            setIsError(true);
+            setIsLoading(false);
+          }
+        });
+      };
+
+      img.onerror = () => {
+        console.error(`[ProtectedImage] Image element approach also failed for: ${formattedUrl}`);
+        setIsError(true);
+        setIsLoading(false);
+      };
+
+      // Add a different cache buster for the retry
+      const retryUrl = `/api/v1/image-proxy?url=${encodeURIComponent(formattedUrl)}&token=${encodeURIComponent(token)}&_=${cacheBuster + 1}`;
+      img.src = retryUrl;
+    });
 
     // Clean up function
     return () => {

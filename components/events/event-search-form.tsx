@@ -15,6 +15,8 @@ export interface EventSearchParams {
   keyword?: string
   date?: string
   status?: "akan datang" | "selesai" | string
+  page?: number
+  limit?: number
 }
 
 interface EventSearchFormProps {
@@ -33,21 +35,21 @@ export function EventSearchForm({ onSearch, isSearching = false, onReset }: Even
   // Handle search submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     const params: EventSearchParams = {}
-    
+
     if (keyword.trim()) {
       params.keyword = keyword.trim()
     }
-    
+
     if (date) {
       params.date = format(date, "yyyy-MM-dd'T'HH:mm:ss")
     }
-    
+
     if (status && status !== 'all') {
       params.status = status
     }
-    
+
     onSearch(params)
   }
 
@@ -77,11 +79,11 @@ export function EventSearchForm({ onSearch, isSearching = false, onReset }: Even
             onChange={(e) => setKeyword(e.target.value)}
           />
         </div>
-        
+
         <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
           <PopoverTrigger asChild>
-            <Button 
-              type="button" 
+            <Button
+              type="button"
               variant={hasFilters ? "default" : "outline"}
               className={cn(hasFilters && "bg-primary text-primary-foreground")}
             >
@@ -97,7 +99,7 @@ export function EventSearchForm({ onSearch, isSearching = false, onReset }: Even
           <PopoverContent className="w-80">
             <div className="space-y-4">
               <h4 className="font-medium">Filter Acara</h4>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="event-date">Tanggal</Label>
                 <div className="grid gap-2">
@@ -125,10 +127,10 @@ export function EventSearchForm({ onSearch, isSearching = false, onReset }: Even
                     </PopoverContent>
                   </Popover>
                   {date && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 px-2" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2"
                       onClick={() => setDate(undefined)}
                     >
                       <X className="h-4 w-4 mr-1" /> Hapus tanggal
@@ -136,7 +138,7 @@ export function EventSearchForm({ onSearch, isSearching = false, onReset }: Even
                   )}
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="event-status">Status</Label>
                 <Select value={status} onValueChange={setStatus}>
@@ -150,13 +152,13 @@ export function EventSearchForm({ onSearch, isSearching = false, onReset }: Even
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="flex justify-between pt-2">
                 <Button type="button" variant="ghost" onClick={handleReset}>
                   Reset
                 </Button>
-                <Button 
-                  type="button" 
+                <Button
+                  type="button"
                   onClick={() => {
                     handleSubmit({ preventDefault: () => {} } as React.FormEvent)
                     setIsFilterOpen(false)
@@ -168,7 +170,7 @@ export function EventSearchForm({ onSearch, isSearching = false, onReset }: Even
             </div>
           </PopoverContent>
         </Popover>
-        
+
         <Button type="submit" disabled={isSearching}>
           {isSearching ? (
             <>
@@ -182,7 +184,7 @@ export function EventSearchForm({ onSearch, isSearching = false, onReset }: Even
             </>
           )}
         </Button>
-        
+
         {(keyword || hasFilters) && (
           <Button type="button" variant="ghost" onClick={handleReset}>
             <X className="mr-2 h-4 w-4" />

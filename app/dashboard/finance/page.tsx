@@ -7,13 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 // Badge styling is now handled via CSS classes
-import { PlusCircle, Edit, Trash2, ArrowUp, ArrowDown, Image, Download } from "lucide-react"
+import { PlusCircle, Edit, Trash2, ArrowUp, ArrowDown, Image } from "lucide-react"
 import { TransactionForm } from "./components/transaction-form"
 import { useFinanceHistory, useFinanceMutations, type FinanceData, type FinanceTransaction } from "@/hooks/useFinance"
 import { formatRupiah } from "@/lib/utils"
 import { format } from "date-fns"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+
 import { FinanceDocumentGallery } from "./components/finance-document-gallery"
 import { TipTapContent } from "@/components/ui/tiptap-editor"
 import { TruncatedDescription } from "@/components/finance/truncated-description"
@@ -235,7 +236,6 @@ export default function FinancePage() {
                   <TableHead>Deskripsi</TableHead>
                   <TableHead>Kategori</TableHead>
                   <TableHead className="text-right">Jumlah</TableHead>
-                  <TableHead>Dokumen</TableHead>
                   <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
@@ -276,18 +276,6 @@ export default function FinancePage() {
                       <span className="text-black">
                         {formatRupiah(Number(transaction.amount))}
                       </span>
-                    </TableCell>
-                    <TableCell>
-                      {transaction.document_url ? (
-                        <button
-                          onClick={() => openDocumentGallery(transaction)}
-                          className="text-blue-600 hover:underline flex items-center"
-                        >
-                          <Image className="h-4 w-4 mr-1" /> Lihat
-                        </button>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-2">

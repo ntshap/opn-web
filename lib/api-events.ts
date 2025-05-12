@@ -121,13 +121,19 @@ export const eventApi = {
       const id = String(eventId).trim();
 
       try {
+        // Add a cache-busting parameter to ensure we get fresh data
+        const cacheBuster = Date.now();
+
         // Get the event details which include photos
-        console.log(`[API] Getting event details for ID: ${id} to extract photos`);
+        console.log(`[API] Getting event details for ID: ${id} to extract photos (cache buster: ${cacheBuster})`);
         const eventResponse = await withRetry(() =>
-          apiClient.get<Event>(`/events/${id}`, {
+          apiClient.get<Event>(`/events/${id}?_=${cacheBuster}`, {
             signal,
             headers: {
-              'X-Request-ID': `event-details-${id}-${Date.now()}`,
+              'X-Request-ID': `event-details-${id}-${cacheBuster}`,
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
+              'Expires': '0'
             }
           })
         );
@@ -135,7 +141,14 @@ export const eventApi = {
         // If the event has photos, return them
         if (eventResponse.data && eventResponse.data.photos && Array.isArray(eventResponse.data.photos)) {
           console.log(`[API] Found ${eventResponse.data.photos.length} photos in event ${id} details`);
-          return eventResponse.data.photos;
+
+          // Add a timestamp to each photo to help with debugging
+          const photosWithTimestamp = eventResponse.data.photos.map(photo => ({
+            ...photo,
+            _fetchedAt: cacheBuster
+          }));
+
+          return photosWithTimestamp;
         } else {
           // If the event doesn't have photos, return an empty array
           console.log(`[API] No photos found in event ${id} details`);

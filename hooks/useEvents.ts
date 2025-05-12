@@ -19,6 +19,20 @@ export const eventKeys = {
   attendance: (eventId: number | string) => [...eventKeys.detail(eventId), "attendance"] as const,
 }
 
+// Define pagination metadata interface
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total_count?: number;
+  total_pages: number;
+}
+
+// Define events response interface with pagination
+export interface EventsResponse {
+  data: Event[];
+  meta: PaginationMeta;
+}
+
 // Hook for fetching events with pagination and improved error handling
 export function useEvents(
   page = 1,
@@ -26,13 +40,20 @@ export function useEvents(
   options?: Omit<UseQueryOptions<Event[], Error>, 'queryKey' | 'queryFn'>
 ) {
   const { toast } = useToast()
+  const [paginationMeta, setPaginationMeta] = useState<PaginationMeta | null>(null)
 
-  return useQuery<Event[], Error>({
+  const query = useQuery<Event[], Error>({
     queryKey: eventKeys.list({ page, limit }),
     queryFn: async ({ signal }) => {
       try {
         console.log('Fetching events with page:', page, 'limit:', limit)
-        return await eventApi.getEvents(page, limit, signal)
+        const events = await eventApi.getEvents(page, limit, signal)
+
+        // Check if we have pagination metadata in the response
+        // This is handled in the API service now, but we can still access it
+        // through the raw response if needed
+
+        return events
       } catch (error) {
         console.error('Error fetching events:', error)
 
@@ -71,6 +92,8 @@ export function useEvents(
     refetchOnWindowFocus: false,
     ...options,
   })
+
+  return query
 }
 
 // Hook for searching events with improved error handling
@@ -82,17 +105,26 @@ export function useSearchEvents(
     status?: "akan datang" | "selesai" | string
     startDate?: string
     endDate?: string
+    page?: number
+    limit?: number
   },
   options?: Omit<UseQueryOptions<Event[], Error>, 'queryKey' | 'queryFn'>
 ) {
   const { toast } = useToast()
+  const [paginationMeta, setPaginationMeta] = useState<PaginationMeta | null>(null)
 
-  return useQuery<Event[], Error>({
+  const query = useQuery<Event[], Error>({
     queryKey: eventKeys.list(searchParams),
     queryFn: async ({ signal }) => {
       try {
         console.log('Searching events with params:', searchParams)
-        return await eventApi.searchEvents(searchParams, signal)
+        const events = await eventApi.searchEvents({
+          ...searchParams,
+          page: searchParams.page || 1,
+          limit: searchParams.limit || 10
+        }, signal)
+
+        return events
       } catch (error) {
         console.error('Error searching events:', error)
 
@@ -132,6 +164,8 @@ export function useSearchEvents(
     refetchOnWindowFocus: false,
     ...options,
   })
+
+  return query
 }
 
 // Hook for fetching a single event with improved error handling

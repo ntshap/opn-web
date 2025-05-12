@@ -153,6 +153,9 @@ export function UploadPhotosDirect({ open, onClose, eventId, onSuccess }: Upload
       setIsSuccess(true)
       setIsUploading(false)
 
+      // Create a timestamp for this upload event
+      const uploadTimestamp = Date.now();
+
       // IMPORTANT: Call onSuccess callback IMMEDIATELY to refresh the gallery
       // This ensures the gallery refreshes as soon as the upload is complete
       if (onSuccess) {
@@ -162,23 +165,55 @@ export function UploadPhotosDirect({ open, onClose, eventId, onSuccess }: Upload
 
       // Emit event to notify all components that photos have been uploaded
       console.log(`[UploadPhotosDirect] Emitting PHOTO_UPLOADED event for event ID ${numericEventId}`);
-      eventBus.emit(EVENTS.PHOTO_UPLOADED, { eventId: numericEventId, timestamp: Date.now() });
+      eventBus.emit(EVENTS.PHOTO_UPLOADED, {
+        eventId: numericEventId,
+        timestamp: uploadTimestamp,
+        count: files.length
+      });
 
       // Also emit a gallery refresh event
-      eventBus.emit(EVENTS.GALLERY_REFRESH, { eventId: numericEventId, timestamp: Date.now() });
+      eventBus.emit(EVENTS.GALLERY_REFRESH, {
+        eventId: numericEventId,
+        timestamp: uploadTimestamp,
+        count: files.length
+      });
 
       // For backward compatibility, still use localStorage
       if (typeof window !== 'undefined') {
-        localStorage.setItem('lastPhotoUpload', Date.now().toString());
+        localStorage.setItem('lastPhotoUpload', uploadTimestamp.toString());
+        localStorage.setItem(`lastPhotoUpload_${numericEventId}`, uploadTimestamp.toString());
 
         // Force a window storage event to ensure all components are notified
         // This helps with components that might be listening for storage events
         window.dispatchEvent(new StorageEvent('storage', {
           key: 'lastPhotoUpload',
-          newValue: Date.now().toString(),
+          newValue: uploadTimestamp.toString(),
+          url: window.location.href
+        }));
+
+        // Also dispatch an event specific to this event ID
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: `lastPhotoUpload_${numericEventId}`,
+          newValue: uploadTimestamp.toString(),
           url: window.location.href
         }));
       }
+
+      // Schedule additional refresh attempts to ensure photos appear
+      // This helps when the backend takes a moment to process the upload
+      setTimeout(() => {
+        if (onSuccess) {
+          console.log('[UploadPhotosDirect] Triggering delayed refresh 1 (500ms)');
+          onSuccess();
+        }
+      }, 500);
+
+      setTimeout(() => {
+        if (onSuccess) {
+          console.log('[UploadPhotosDirect] Triggering delayed refresh 2 (1500ms)');
+          onSuccess();
+        }
+      }, 1500);
 
       // Reset the UI after 1.5 seconds (keep the success message visible briefly)
       setTimeout(() => {

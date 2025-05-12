@@ -24,7 +24,9 @@ export default function DashboardPage() {
 
       {/* Upcoming Events */}
       <div className="space-y-3 sm:space-y-4">
-        <h2 className="text-xl sm:text-2xl font-medium">Acara Terbaru</h2>
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl sm:text-2xl font-medium">Acara Terbaru</h2>
+        </div>
         <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
           <div className="p-3 sm:p-6">
             <EventsList />

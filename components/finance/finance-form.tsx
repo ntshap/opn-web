@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertCircle, Loader2, Upload } from "lucide-react"
+import { AlertCircle, Loader2 } from "lucide-react"
 import { format } from "date-fns"
 import { type Finance, type FinanceFormData } from "@/lib/api-service" // Updated path
 import { useFinanceMutations } from "@/hooks/useFinance"
@@ -21,14 +21,8 @@ interface FinanceFormProps {
 
 export function FinanceForm({ finance, isEditing = false, onSuccess }: FinanceFormProps) {
   const router = useRouter()
-  // Get mutations but handle the case where uploadDocument might not exist
-  const mutations = useFinanceMutations()
-  const { createFinance, updateFinance } = mutations
-  // Safely access uploadDocument or create a dummy function
-  const uploadDocument = mutations.uploadDocument || {
-    mutate: () => console.warn('uploadDocument not available'),
-    isLoading: false
-  }
+  // Get mutations
+  const { createFinance, updateFinance } = useFinanceMutations()
 
   // Form state
   const [formData, setFormData] = useState({
@@ -38,7 +32,7 @@ export function FinanceForm({ finance, isEditing = false, onSuccess }: FinanceFo
     description: "",
   })
 
-  const [file, setFile] = useState<File | null>(null)
+
   const [errorMessage, setErrorMessage] = useState("")
 
   // Initialize form with finance data if editing
@@ -64,12 +58,7 @@ export function FinanceForm({ finance, isEditing = false, onSuccess }: FinanceFo
     setFormData((prev) => ({ ...prev, category: value }))
   }
 
-  // Handle file selection
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setFile(e.target.files[0])
-    }
-  }
+
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -97,33 +86,9 @@ export function FinanceForm({ finance, isEditing = false, onSuccess }: FinanceFo
           id: finance.id,
           data: apiData,
         })
-
-        // Upload document if selected
-        if (file) {
-          uploadDocument.mutate({
-            financeId: finance.id,
-            file,
-          })
-        }
       } else {
-        // Create new finance record and handle document upload after creation
-        createFinance.mutate(apiData, {
-          onSuccess: (response) => {
-            // If we have a file to upload and the finance record was created successfully
-            // The response might be different depending on the API implementation
-            // We need to safely extract the ID
-            const newFinanceId = response && typeof response === 'object' && 'id' in response
-              ? response.id
-              : null;
-
-            if (file && newFinanceId) {
-              uploadDocument.mutate({
-                financeId: newFinanceId,
-                file,
-              })
-            }
-          }
-        })
+        // Create new finance record
+        createFinance.mutate(apiData)
       }
 
       // Call onSuccess callback or redirect
@@ -137,7 +102,7 @@ export function FinanceForm({ finance, isEditing = false, onSuccess }: FinanceFo
     }
   }
 
-  const isSubmitting = createFinance.isPending || updateFinance.isPending || uploadDocument.isPending
+  const isSubmitting = createFinance.isPending || updateFinance.isPending
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -213,32 +178,7 @@ export function FinanceForm({ finance, isEditing = false, onSuccess }: FinanceFo
           />
         </div>
 
-        {/* Document Upload */}
-        <div className="space-y-2">
-          <Label htmlFor="document">Dokumen Pendukung</Label>
-          <div className="flex items-center gap-4">
-            <Input
-              id="document"
-              type="file"
-              onChange={handleFileChange}
-              className="max-w-sm"
-              accept=".pdf,.jpg,.jpeg,.png"
-            />
-            {finance?.document_url && (
-              <a
-                href={finance.document_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:underline"
-              >
-                Lihat dokumen saat ini
-              </a>
-            )}
-          </div>
-          <p className="text-sm text-gray-500">
-            Format yang didukung: PDF, JPG, JPEG, PNG (maks. 5MB)
-          </p>
-        </div>
+
       </div>
 
       <div className="flex justify-end gap-4">

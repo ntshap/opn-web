@@ -118,27 +118,40 @@ async function withRetry<T>(
 
 // API service for events
 const eventApiOriginal = {
-  // Get events with pagination
+  // Get events with pagination - updated to use new API format
   getEvents: async (page = 1, limit = 10, signal?: AbortSignal): Promise<Event[]> => {
     try {
+      console.log(`[API] Fetching events with page=${page} and limit=${limit}`)
       const response = await withRetry(() =>
-        apiClient.get<Event[]>("/events/", { // Use imported apiClient
-          params: { skip: (page - 1) * limit, limit },
+        apiClient.get<any>("/events/", { // Use imported apiClient
+          params: { page, limit }, // Updated to use page instead of skip
           signal,
         })
       )
-      return response.data
-    } catch (error) {
-      if (axios.isCancel(error)) {
-        console.log('Events request was cancelled - returning empty array')
+
+      // Check if the response has the new format with data and meta
+      if (response.data && typeof response.data === 'object' && Array.isArray(response.data.data)) {
+        console.log(`[API] Received events in new format with meta:`, response.data.meta)
+        return response.data.data
+      } else if (Array.isArray(response.data)) {
+        // Fallback for old format
+        console.log(`[API] Received events in old array format`)
+        return response.data
+      } else {
+        console.error(`[API] Unexpected events response format:`, response.data)
         return []
       }
-      console.error('Error fetching events:', error)
+    } catch (error) {
+      if (axios.isCancel(error)) {
+        console.log('[API] Events request was cancelled - returning empty array')
+        return []
+      }
+      console.error('[API] Error fetching events:', error)
       throw error
     }
   },
 
-  // Search events
+  // Search events - updated to use new API format
   searchEvents: async (
     params: {
       keyword?: string
@@ -147,29 +160,51 @@ const eventApiOriginal = {
       status?: "akan datang" | "selesai" | string
       startDate?: string
       endDate?: string
+      page?: number
+      limit?: number
     },
     signal?: AbortSignal,
   ): Promise<Event[]> => {
     try {
-      const apiParams: Record<string, string> = {};
+      const apiParams: Record<string, string | number> = {
+        page: params.page || 1,
+        limit: params.limit || 10
+      };
+
       if (params.keyword) apiParams.keyword = params.keyword;
       if (params.date) apiParams.date = params.date;
       if (params.time) apiParams.time = params.time;
       if (params.status) apiParams.status = params.status;
+      if (params.startDate) apiParams.start_date = params.startDate;
+      if (params.endDate) apiParams.end_date = params.endDate;
+
+      console.log(`[API] Searching events with params:`, apiParams);
 
       const response = await withRetry(() =>
-        apiClient.get<Event[]>("/events/search", { // Use imported apiClient
+        apiClient.get<any>("/events/search", { // Use imported apiClient
           params: apiParams,
           signal,
         })
       )
-      return response.data || []
+
+      // Check if the response has the new format with data and meta
+      if (response.data && typeof response.data === 'object' && Array.isArray(response.data.data)) {
+        console.log(`[API] Received search results in new format with meta:`, response.data.meta);
+        return response.data.data;
+      } else if (Array.isArray(response.data)) {
+        // Fallback for old format
+        console.log(`[API] Received search results in old array format`);
+        return response.data;
+      } else {
+        console.error(`[API] Unexpected search response format:`, response.data);
+        return [];
+      }
     } catch (error) {
       if (axios.isCancel(error)) {
-        console.log('Search request was cancelled - returning empty array')
+        console.log('[API] Search request was cancelled - returning empty array')
         return []
       }
-      console.error('Error searching events:', error)
+      console.error('[API] Error searching events:', error)
       throw error
     }
   },
@@ -1262,6 +1297,52 @@ export const notificationsApi = {
 
 // Member API service
 export const memberApi = {
+  // Upload member photo
+  uploadMemberPhoto: async (memberId: number | string, file: File): Promise<any> => {
+    try {
+      console.log(`[API] Uploading photo for member ID ${memberId}`);
+
+      // Get the auth token - apiClient will automatically add this in its interceptor
+      // but we'll check it here for validation
+      const authToken = getAuthToken();
+      if (!authToken) {
+        console.error('[API] No authentication token available for member photo upload');
+        throw new Error('Authentication required. Please log in again.');
+      }
+
+      console.log(`[API] Auth token available for member photo upload: ${authToken.substring(0, 15)}...`);
+
+      // Create FormData object
+      const formData = new FormData();
+
+      // Use 'files' as the field name to match backend API
+      // The backend expects a field named 'files' (plural)
+      formData.append('files', file);
+
+      // Use the correct endpoint URL format for uploads
+      const endpoint = `/uploads/members/${memberId}/photos`;
+      console.log(`[API] Using endpoint for member photo upload: ${endpoint}`);
+
+      // Use apiClient directly instead of axios to ensure consistent headers and error handling
+      const response = await apiClient.post<any>(
+        endpoint,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          timeout: 60000 // Increase timeout for uploads
+        }
+      );
+
+      console.log(`[API] Member photo upload response:`, response.data);
+      return response.data;
+    } catch (error) {
+      console.error(`[API] Error uploading member photo:`, error);
+      throw error;
+    }
+  },
+
   // Create a new user with username and password
   createUser: async (userData: { user_data: { username: string; password: string }; biodata: BiodataFormData }): Promise<any> => {
     try {

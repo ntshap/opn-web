@@ -2,6 +2,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { Finance, financeApi, FinanceHistoryResponse as ApiFinanceHistoryResponse } from '@/lib/api-service'; // Updated path
 import { uploadsApi } from '@/lib/api-uploads';
 
+
 // This interface matches the transaction object in the API response
 export interface FinanceTransaction {
   id: number;
@@ -129,6 +130,8 @@ export function useFinanceMutations() {
     }
   });
 
+
+
   // Upload document mutation using the proper API function with PUT method
   const uploadDocument = useMutation<any, Error, { financeId: number | string, file: File }>({
     mutationFn: async ({ financeId, file }: { financeId: number | string, file: File }) => {
@@ -150,6 +153,6 @@ export function useFinanceMutations() {
     createFinance,
     updateFinance,
     deleteFinance,
-    uploadDocument // Add uploadDocument to the return object
+    uploadDocument
   };
 }

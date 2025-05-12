@@ -155,15 +155,18 @@ export function UploadPhotosModal({ open, onClose, eventId, onSuccess }: UploadP
           console.log('Upload success response:', response)
           setIsSuccess(true)
           setIsUploading(false)
-          // Reset after 2 seconds
+
+          // Call the onSuccess callback IMMEDIATELY if provided
+          if (onSuccess) {
+            console.log('[UploadPhotosModal] Immediately triggering onSuccess callback to refresh gallery');
+            onSuccess()
+          }
+
+          // Reset UI after 2 seconds
           setTimeout(() => {
             setFiles([])
             setIsSuccess(false)
             onClose()
-            // Call the onSuccess callback if provided
-            if (onSuccess) {
-              onSuccess()
-            }
           }, 2000)
         },
         onError: (error) => {

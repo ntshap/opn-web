@@ -26,9 +26,13 @@ export function GallerySimple({ eventId }: GallerySimpleProps) {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
 
   // Memoize the fetchPhotos function to prevent infinite loops
-  const fetchPhotos = useCallback(async () => {
-    console.log(`[GallerySimple] fetchPhotos called for event ${eventId}`);
-    setLoading(true);
+  const fetchPhotos = useCallback(async (retryCount = 0, maxRetries = 3, delay = 500) => {
+    console.log(`[GallerySimple] fetchPhotos called for event ${eventId} (retry: ${retryCount}/${maxRetries})`);
+
+    // Only show loading indicator on first attempt to avoid flickering during retries
+    if (retryCount === 0) {
+      setLoading(true);
+    }
     setError(null);
 
     try {
@@ -112,10 +116,41 @@ export function GallerySimple({ eventId }: GallerySimpleProps) {
           setPhotos(processedPhotos);
         } else {
           console.log("[GallerySimple] No photos found in response");
+
+          // If we just uploaded photos but none were returned, retry a few times
+          // This handles the case where the backend needs a moment to process the upload
+          if (retryCount < maxRetries) {
+            console.log(`[GallerySimple] No photos found after upload, retrying in ${delay}ms (${retryCount + 1}/${maxRetries})`);
+
+            // Wait for the specified delay before retrying
+            setTimeout(() => {
+              if (isMounted.current) {
+                fetchPhotos(retryCount + 1, maxRetries, delay * 1.5); // Increase delay with each retry
+              }
+            }, delay);
+
+            return; // Don't update state yet, wait for retry
+          }
+
           setPhotos([]);
         }
       } catch (err) {
         console.error("[GallerySimple] Error fetching photos:", err);
+
+        // If there's an error and we haven't exceeded max retries, try again
+        if (retryCount < maxRetries) {
+          console.log(`[GallerySimple] Error fetching photos, retrying in ${delay}ms (${retryCount + 1}/${maxRetries})`);
+
+          // Wait for the specified delay before retrying
+          setTimeout(() => {
+            if (isMounted.current) {
+              fetchPhotos(retryCount + 1, maxRetries, delay * 1.5); // Increase delay with each retry
+            }
+          }, delay);
+
+          return; // Don't update error state yet, wait for retry
+        }
+
         setError(err instanceof Error ? err.message : "Unknown error");
         setPhotos([]);
       }
@@ -406,18 +441,15 @@ export function GallerySimple({ eventId }: GallerySimpleProps) {
         onClose={() => setIsUploadModalOpen(false)}
         eventId={eventId}
         onSuccess={() => {
-          // Refetch photos after successful upload
-          console.log('[GallerySimple] onSuccess callback triggered from UploadPhotosDirect, refreshing photos');
-          // Force an immediate refresh
-          fetchPhotos();
+          // Refetch photos after successful upload with retry mechanism
+          console.log('[GallerySimple] onSuccess callback triggered from UploadPhotosDirect, refreshing photos with retry mechanism');
 
-          // Also schedule another refresh after a short delay to catch any late-arriving photos
-          setTimeout(() => {
-            if (isMounted.current) {
-              console.log('[GallerySimple] Performing delayed refresh to catch any late-arriving photos');
-              fetchPhotos();
-            }
-          }, 500);
+          // Start with immediate refresh attempt
+          fetchPhotos(0, 5, 300); // Use 5 retries with shorter initial delay for faster response
+
+          // Also emit the event for other components that might be listening
+          eventBus.emit(EVENTS.PHOTO_UPLOADED, { eventId: eventId, timestamp: Date.now() });
+          eventBus.emit(EVENTS.GALLERY_REFRESH, { eventId: eventId, timestamp: Date.now() });
         }}
       />
     </>

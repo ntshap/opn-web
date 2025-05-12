@@ -10,12 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { AlertCircle, ArrowUpDown, Download, Edit, Plus, Search, Trash2, Upload, Image } from "lucide-react"
+import { AlertCircle, ArrowUpDown, Edit, Plus, Search, Trash2 } from "lucide-react"
 import { format, parseISO } from "date-fns"
 import { id } from "date-fns/locale"
 import { useFinanceHistory } from "@/hooks/useFinance"
 import { formatRupiah } from "@/lib/utils"
-import { FinanceDocumentGallery } from "./finance-document-gallery"
+
 import { TruncatedDescription } from "./truncated-description"
 
 export function FinanceList() {
@@ -25,27 +25,8 @@ export function FinanceList() {
     start_date: "",
     end_date: "",
   })
-  const [isGalleryOpen, setIsGalleryOpen] = useState(false)
-  const [selectedFinanceId, setSelectedFinanceId] = useState<number | null>(null)
-  const [selectedDocumentUrl, setSelectedDocumentUrl] = useState<string | null>(null)
-
   // Fetch finance history with real API
   const { data, isLoading, error, refetch } = useFinanceHistory(filters)
-
-  // Handle opening the document gallery
-  const handleOpenDocumentGallery = (finance: any) => {
-    setSelectedFinanceId(finance.id)
-
-    // Make sure we have a valid document URL
-    let documentUrl = finance.document_url;
-
-    // Log the document URL for debugging
-    console.log("Opening document gallery with URL:", documentUrl);
-
-    // Set the document URL and open the gallery
-    setSelectedDocumentUrl(documentUrl)
-    setIsGalleryOpen(true)
-  }
 
   // Format currency in Rupiah
   const formatCurrency = (amount: string) => {
@@ -200,7 +181,6 @@ export function FinanceList() {
                     <TableHead>Kategori</TableHead>
                     <TableHead className="text-right">Jumlah</TableHead>
                     <TableHead className="text-right">Saldo</TableHead>
-                    <TableHead>Dokumen</TableHead>
                     <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -214,13 +194,12 @@ export function FinanceList() {
                         <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                         <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                         <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                        <TableCell><Skeleton className="h-5 w-16" /></TableCell>
                         <TableCell><Skeleton className="h-9 w-20" /></TableCell>
                       </TableRow>
                     ))
                   ) : data?.transactions.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
+                      <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
                         Tidak ada transaksi yang ditemukan
                       </TableCell>
                     </TableRow>
@@ -259,18 +238,6 @@ export function FinanceList() {
                         <TableCell className="text-right">
                           {formatCurrency(finance.balance_after)}
                         </TableCell>
-                        <TableCell>
-                          {finance.document_url ? (
-                            <button
-                              onClick={() => handleOpenDocumentGallery(finance)}
-                              className="text-blue-600 hover:underline flex items-center"
-                            >
-                              <Image className="h-4 w-4 mr-1" /> Lihat
-                            </button>
-                          ) : (
-                            <span className="text-gray-400">-</span>
-                          )}
-                        </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
                             <Button
@@ -280,15 +247,6 @@ export function FinanceList() {
                               title="Edit Transaksi"
                             >
                               <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-blue-600"
-                              onClick={() => handleOpenDocumentGallery(finance)}
-                              title={finance.document_url ? "Lihat Bukti Transaksi" : "Unggah Bukti Transaksi"}
-                            >
-                              <Image className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"
@@ -322,19 +280,7 @@ export function FinanceList() {
         </CardFooter>
       </Card>
 
-      {/* Document Gallery */}
-      {selectedFinanceId && (
-        <FinanceDocumentGallery
-          open={isGalleryOpen}
-          onOpenChange={setIsGalleryOpen}
-          financeId={selectedFinanceId}
-          documentUrl={selectedDocumentUrl}
-          onSuccess={() => {
-            // Refresh the data after successful upload or delete
-            refetch()
-          }}
-        />
-      )}
+
     </div>
   )
 }

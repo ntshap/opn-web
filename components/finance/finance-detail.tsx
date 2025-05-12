@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { AlertCircle, ArrowLeft, Download, Edit, Trash2 } from "lucide-react"
+import { AlertCircle, ArrowLeft, Edit, Trash2 } from "lucide-react"
 import { format, parseISO } from "date-fns"
 import { id } from "date-fns/locale"
 import { useFinance, useFinanceMutations } from "@/hooks/useFinance"
@@ -142,21 +142,7 @@ export function FinanceDetail({ financeId }: FinanceDetailProps) {
                   <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Saldo Sesudah</h3>
                   <p className="text-lg font-medium">{formatCurrency(finance.balance_after)}</p>
                 </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Dokumen Pendukung</h3>
-                  {finance.document_url ? (
-                    <a
-                      href={finance.document_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline flex items-center mt-1"
-                    >
-                      <Download className="h-4 w-4 mr-2" /> Unduh Dokumen
-                    </a>
-                  ) : (
-                    <p className="text-gray-500">Tidak ada dokumen</p>
-                  )}
-                </div>
+
               </div>
             </div>
           ) : (

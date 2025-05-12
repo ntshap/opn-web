@@ -40,6 +40,11 @@ export function MemberCard({ member, onEdit, onDelete }: MemberCardProps) {
               alt={`Photo of ${member.full_name && member.full_name !== 'string' ? member.full_name : 'member'}`}
               className="h-full w-full object-cover"
               fallbackSrc="/default-avatar.png"
+              loadingComponent={
+                <div className="flex items-center justify-center h-full w-full bg-muted">
+                  <div className="animate-pulse h-full w-full bg-muted-foreground/20"></div>
+                </div>
+              }
             />
           ) : (
             <AvatarFallback className="text-lg bg-primary text-primary-foreground">

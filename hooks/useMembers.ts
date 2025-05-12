@@ -187,11 +187,37 @@ export function useMemberMutations() {
     }
   })
 
+  // Upload member photo mutation
+  const uploadMemberPhoto = useMutation({
+    mutationFn: ({ memberId, file }: { memberId: number | string, file: File }) =>
+      memberApi.uploadMemberPhoto(memberId, file),
+    onSuccess: () => {
+      // Invalidate all member queries to refetch the list with updated photos
+      queryClient.invalidateQueries({ queryKey: memberKeys.lists() })
+
+      // Show success toast
+      toast({
+        title: "Berhasil",
+        description: "Foto anggota berhasil diunggah",
+      })
+    },
+    onError: (error) => {
+      // Show error toast
+      toast({
+        title: "Gagal",
+        description: "Terjadi kesalahan saat mengunggah foto anggota",
+        variant: "destructive",
+      })
+      console.error("Error uploading member photo:", error)
+    }
+  })
+
   return {
     createUser,
     createMember,
     createBiodata,
     updateBiodata,
     deleteUser,
+    uploadMemberPhoto,
   }
 }
