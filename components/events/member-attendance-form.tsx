@@ -142,6 +142,8 @@ export const MemberAttendanceForm = forwardRef<
 
         if (divisionsList.length > 0) {
           setActiveTab(divisionsList[0]);
+        } else {
+          setActiveTab("all"); // Default to "all" if no divisions with members
         }
 
         setIsInitialized(true);

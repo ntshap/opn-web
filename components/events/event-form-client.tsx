@@ -87,14 +87,37 @@ export function EventFormClient({ event, isEditing = false, onSuccess }: EventFo
                   });
                   setAttendees(enhancedAttendees);
                 } else {
-                  // If no attendance data or not an array, set empty array
-                  console.log('No attendance data found or invalid format');
-                  setAttendees([]);
+                  // If no attendance data, create default entries for all members
+                  console.log('No attendance data found, creating default entries for all members');
+                  const defaultAttendees = allMembers.map(member => ({
+                    id: Date.now() + member.id, // Generate a temporary ID
+                    event_id: Number(event.id),
+                    member_id: member.id,
+                    name: member.name,
+                    division: member.division,
+                    status: 'Hadir',
+                    notes: '',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                  }));
+                  setAttendees(defaultAttendees);
                 }
               })
               .catch(error => {
                 console.error('Error fetching attendance data:', error);
-                setAttendees([]);
+                // If error fetching attendance, still show all members with default status
+                const defaultAttendees = allMembers.map(member => ({
+                  id: Date.now() + member.id, // Generate a temporary ID
+                  event_id: Number(event.id),
+                  member_id: member.id,
+                  name: member.name,
+                  division: member.division,
+                  status: 'Hadir',
+                  notes: '',
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                }));
+                setAttendees(defaultAttendees);
               })
               .finally(() => {
                 setIsLoadingAttendance(false);
@@ -460,42 +483,52 @@ export function EventFormClient({ event, isEditing = false, onSuccess }: EventFo
                       </td>
                     </tr>
                   ) : (
-                    attendees.map((attendee) => (
-                      <tr key={attendee.id} className="border-b last:border-b-0">
-                        <td className="p-2">{attendee.name}</td>
-                        <td className="p-2">{attendee.division}</td>
-                        <td className="p-2">
-                          <select
-                            className="border border-gray-300 rounded p-1 text-sm w-full"
-                            value={attendee.status}
-                            onChange={(e) => {
-                              const updatedAttendees = attendees.map(a =>
-                                a.id === attendee.id ? { ...a, status: e.target.value } : a
-                              )
-                              setAttendees(updatedAttendees)
-                            }}
-                          >
-                            <option value="Hadir">Hadir</option>
-                            <option value="Izin">Izin</option>
-                            <option value="Alfa">Alfa</option>
-                          </select>
-                        </td>
-                        <td className="p-2">
-                          <input
-                            type="text"
-                            className="border border-gray-300 rounded p-1 text-sm w-full"
-                            value={attendee.notes}
-                            onChange={(e) => {
-                              const updatedAttendees = attendees.map(a =>
-                                a.id === attendee.id ? { ...a, notes: e.target.value } : a
-                              )
-                              setAttendees(updatedAttendees)
-                            }}
-                            placeholder="Tambahkan keterangan"
-                          />
-                        </td>
-                      </tr>
-                    ))
+                    // Sort attendees by division and then by name for better organization
+                    [...attendees]
+                      .sort((a, b) => {
+                        // First sort by division
+                        if (a.division !== b.division) {
+                          return a.division.localeCompare(b.division);
+                        }
+                        // Then sort by name
+                        return a.name.localeCompare(b.name);
+                      })
+                      .map((attendee) => (
+                        <tr key={attendee.id} className="border-b last:border-b-0">
+                          <td className="p-2">{attendee.name}</td>
+                          <td className="p-2">{attendee.division}</td>
+                          <td className="p-2">
+                            <select
+                              className="border border-gray-300 rounded p-1 text-sm w-full"
+                              value={attendee.status}
+                              onChange={(e) => {
+                                const updatedAttendees = attendees.map(a =>
+                                  a.id === attendee.id ? { ...a, status: e.target.value } : a
+                                )
+                                setAttendees(updatedAttendees)
+                              }}
+                            >
+                              <option value="Hadir">Hadir</option>
+                              <option value="Izin">Izin</option>
+                              <option value="Alfa">Alfa</option>
+                            </select>
+                          </td>
+                          <td className="p-2">
+                            <input
+                              type="text"
+                              className="border border-gray-300 rounded p-1 text-sm w-full"
+                              value={attendee.notes || ''}
+                              onChange={(e) => {
+                                const updatedAttendees = attendees.map(a =>
+                                  a.id === attendee.id ? { ...a, notes: e.target.value } : a
+                                )
+                                setAttendees(updatedAttendees)
+                              }}
+                              placeholder="Tambahkan keterangan"
+                            />
+                          </td>
+                        </tr>
+                      ))
                   )}
                 </tbody>
               </table>

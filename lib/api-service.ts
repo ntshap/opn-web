@@ -285,7 +285,7 @@ export const eventApi = {
       // ... (end of data validation)
 
       const response = await withRetry(() =>
-        apiClient.post<Event>("/events", apiEventData) // Use imported apiClient
+        apiClient.post<Event>("/events/", apiEventData) // Use imported apiClient with trailing slash
       )
       return response.data;
     } catch (error: any) {
@@ -375,6 +375,13 @@ export const eventApi = {
           apiClient.get<EventAttendance[]>(`/events/${eventId}/attendance/`, { signal })
         );
         console.log(`[API] Successfully fetched attendance for event ID: ${eventId}`);
+
+        // If the response is empty or not an array, return an empty array
+        if (!response.data || !Array.isArray(response.data) || response.data.length === 0) {
+          console.log(`[API] No attendance records found for event ID: ${eventId}, returning empty array`);
+          return [];
+        }
+
         return response.data;
       } catch (attendanceError) {
         // Handle specific errors for attendance

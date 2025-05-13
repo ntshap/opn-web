@@ -500,7 +500,13 @@ export function EventForm({ event, onSuccess }: EventFormProps) {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <MemberAttendanceForm eventId={event.id} />
+              <MemberAttendanceForm
+                eventId={event.id}
+                onAttendanceChange={(records) => {
+                  console.log('Attendance records updated:', records);
+                  // You can add additional logic here if needed
+                }}
+              />
             </CardContent>
           </Card>
         </TabsContent>

@@ -48,11 +48,12 @@ export function AttendanceForm({ eventId, attendees: initialAttendees = [], onRe
 
   // Ensure attendees is always an array
   const [attendees, setAttendees] = useState<Attendee[]>([])
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false)
 
   // Get unique divisions for filtering
   const divisions = [...new Set(attendees.map(a => a.division).filter(Boolean))]
 
-  // Initialize attendees from props and localStorage
+  // Initialize attendees from props, localStorage, and fetch members if needed
   useEffect(() => {
     // Start with the initial attendees from props
     let attendeesList = Array.isArray(initialAttendees) ? initialAttendees : [];
@@ -85,7 +86,73 @@ export function AttendanceForm({ eventId, attendees: initialAttendees = [], onRe
       });
     }
 
-    setAttendees(attendeesList);
+    // If we don't have any attendees, fetch members from the API
+    if (attendeesList.length === 0) {
+      setIsLoadingMembers(true);
+
+      // Import the API client dynamically to avoid issues
+      import('@/lib/api-service').then(({ memberApi }) => {
+        memberApi.getMembers()
+          .then(membersData => {
+            console.log('[AttendanceForm] Fetched members data:', membersData);
+
+            // Create attendee records from members data
+            const membersAttendees: Attendee[] = [];
+
+            // Process each division and its members
+            Object.entries(membersData).forEach(([division, members]) => {
+              if (Array.isArray(members)) {
+                members.forEach(member => {
+                  if (member && member.id) {
+                    // Create an attendee record for each member
+                    membersAttendees.push({
+                      id: member.id, // Use member ID as temporary attendance record ID
+                      event_id: Number(eventId),
+                      member_id: member.id,
+                      member_name: member.full_name || 'Tidak ada nama',
+                      division: division,
+                      status: 'Hadir', // Default status
+                      notes: '',
+                      created_at: new Date().toISOString(),
+                      updated_at: new Date().toISOString()
+                    });
+                  }
+                });
+              }
+            });
+
+            console.log(`[AttendanceForm] Created ${membersAttendees.length} attendee records from members data`);
+
+            // Apply any saved attendance data to these records
+            if (savedAttendanceData.length > 0) {
+              const savedAttendanceMap = new Map();
+              savedAttendanceData.forEach(item => {
+                if (item && item.member_id) {
+                  savedAttendanceMap.set(item.member_id, item);
+                }
+              });
+
+              membersAttendees.forEach(attendee => {
+                const savedData = savedAttendanceMap.get(attendee.member_id);
+                if (savedData) {
+                  attendee.status = savedData.status || attendee.status;
+                  attendee.notes = savedData.notes || attendee.notes;
+                }
+              });
+            }
+
+            setAttendees(membersAttendees);
+          })
+          .catch(error => {
+            console.error('[AttendanceForm] Error fetching members:', error);
+          })
+          .finally(() => {
+            setIsLoadingMembers(false);
+          });
+      });
+    } else {
+      setAttendees(attendeesList);
+    }
   }, [initialAttendees, eventId])
 
   // Reset form when selected attendee changes
@@ -214,10 +281,15 @@ export function AttendanceForm({ eventId, attendees: initialAttendees = [], onRe
         )}
       </CardHeader>
       <CardContent>
-        {attendees.length === 0 ? (
+        {isLoadingMembers ? (
+          <div className="flex flex-col items-center justify-center py-8 space-y-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+            <p className="text-muted-foreground">Memuat data anggota...</p>
+          </div>
+        ) : attendees.length === 0 ? (
           <Alert>
             <AlertDescription>
-              Belum ada data kehadiran untuk acara ini.
+              Belum ada data anggota untuk ditampilkan. Silakan tambahkan anggota terlebih dahulu.
             </AlertDescription>
           </Alert>
         ) : (
@@ -243,44 +315,52 @@ export function AttendanceForm({ eventId, attendees: initialAttendees = [], onRe
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredAttendees.map((attendee) => (
-                      <TableRow key={attendee.id} onClick={() => handleSelectAttendee(attendee.id)} className="cursor-pointer hover:bg-muted/50">
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                            {attendee.avatar ? (
-                              <img
-                                src={attendee.avatar}
-                                alt={attendee.member_name || attendee.name || 'Anggota'}
-                                className="w-6 h-6 rounded-full"
-                              />
-                            ) : (
-                              <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
-                                <span className="text-xs">
-                                  {(() => {
-                                    const displayName = attendee.member_name || attendee.name || '';
-                                    return displayName.length > 0 ? displayName[0] : '?';
-                                  })()}
-                                </span>
-                              </div>
-                            )}
-                            {attendee.member_name || attendee.name || 'Anggota'}
-                          </div>
+                    {filteredAttendees.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center py-4">
+                          Tidak ada anggota di divisi ini
                         </TableCell>
-                        <TableCell>{attendee.division || '-'}</TableCell>
-                        <TableCell>
-                          <span
-                            className={`text-xs px-3 py-1 rounded-full ${
-                              attendee.status === "Hadir" ? "bg-green-100 text-green-800" :
-                              attendee.status === "Izin" ? "bg-yellow-100 text-yellow-800" :
-                              "bg-red-100 text-red-800"
-                            }`}
-                          >
-                            {attendee.status}
-                          </span>
-                        </TableCell>
-                        <TableCell>{attendee.notes || '-'}</TableCell>
                       </TableRow>
-                    ))}
+                    ) : (
+                      filteredAttendees.map((attendee) => (
+                        <TableRow key={attendee.id} onClick={() => handleSelectAttendee(attendee.id)} className="cursor-pointer hover:bg-muted/50">
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              {attendee.avatar ? (
+                                <img
+                                  src={attendee.avatar}
+                                  alt={attendee.member_name || attendee.name || 'Anggota'}
+                                  className="w-6 h-6 rounded-full"
+                                />
+                              ) : (
+                                <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
+                                  <span className="text-xs">
+                                    {(() => {
+                                      const displayName = attendee.member_name || attendee.name || '';
+                                      return displayName.length > 0 ? displayName[0] : '?';
+                                    })()}
+                                  </span>
+                                </div>
+                              )}
+                              {attendee.member_name || attendee.name || 'Tidak ada nama'}
+                            </div>
+                          </TableCell>
+                          <TableCell>{attendee.division || '-'}</TableCell>
+                          <TableCell>
+                            <span
+                              className={`text-xs px-3 py-1 rounded-full ${
+                                attendee.status === "Hadir" ? "bg-green-100 text-green-800" :
+                                attendee.status === "Izin" ? "bg-yellow-100 text-yellow-800" :
+                                "bg-red-100 text-red-800"
+                              }`}
+                            >
+                              {attendee.status}
+                            </span>
+                          </TableCell>
+                          <TableCell>{attendee.notes || '-'}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </div>
@@ -295,7 +375,7 @@ export function AttendanceForm({ eventId, attendees: initialAttendees = [], onRe
               <DialogTitle>
                 Edit Kehadiran: {(() => {
                   const attendee = attendees.find(a => a.id === selectedAttendee);
-                  return attendee ? (attendee.member_name || attendee.name || 'Anggota') : 'Anggota';
+                  return attendee ? (attendee.member_name || attendee.name || 'Tidak ada nama') : 'Tidak ada nama';
                 })()}
               </DialogTitle>
             </DialogHeader>
@@ -396,7 +476,7 @@ export function AttendanceForm({ eventId, attendees: initialAttendees = [], onRe
                   {attendees.map((attendee) => (
                     <TableRow key={attendee.id}>
                       <TableCell className="font-medium">
-                        {attendee.member_name || attendee.name || 'Anggota'}
+                        {attendee.member_name || attendee.name || 'Tidak ada nama'}
                       </TableCell>
                       <TableCell>{attendee.division || '-'}</TableCell>
                       <TableCell>

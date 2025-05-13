@@ -259,79 +259,150 @@ export function useEventAttendance(
             const savedAttendanceData = getSavedAttendanceData(eventId);
             console.log(`[useEventAttendance] Loaded ${savedAttendanceData.length} saved attendance records from localStorage:`, savedAttendanceData);
 
-            if (savedAttendanceData.length > 0) {
-              // Try to get members data to get the actual names
-              try {
-                // Get members data from the API
-                const membersResponse = await memberApi.getMembers();
+            // Always fetch members data to ensure we have the latest member information
+            try {
+              // Get members data from the API
+              const membersResponse = await memberApi.getMembers();
+              console.log('[useEventAttendance] Fetched members data:', membersResponse);
 
-                // Create a flat array of all members
-                const allMembers: Record<number, string> = {};
-                Object.values(membersResponse).forEach(members => {
-                  members.forEach(member => {
-                    if (member.id) {
-                      allMembers[member.id] = member.full_name || `Anggota ${member.id}`;
-                    }
-                  });
+              // Create a flat array of all members with their division
+              const allMembers: Record<number, { name: string, division: string }> = {};
+              Object.entries(membersResponse).forEach(([division, members]) => {
+                members.forEach(member => {
+                  if (member.id) {
+                    // Always use the full name, never use the fallback format
+                    allMembers[member.id] = {
+                      name: member.full_name || "Tidak ada nama",
+                      division: division
+                    };
+                  }
                 });
+              });
 
+              // If we have saved attendance data, use it with the member names
+              if (savedAttendanceData.length > 0) {
                 // Convert the localStorage data to the expected EventAttendance format with actual names
                 return savedAttendanceData.map(item => ({
                   id: item.member_id, // Use member_id as id for simplicity
                   event_id: Number(eventId),
                   member_id: item.member_id,
-                  member_name: allMembers[item.member_id] || `Anggota ${item.member_id}`,
+                  member_name: allMembers[item.member_id]?.name || "Tidak ada nama",
+                  division: allMembers[item.member_id]?.division || "",
                   status: item.status,
                   notes: item.notes || "",
                   created_at: new Date().toISOString(),
                   updated_at: new Date().toISOString()
                 }));
-              } catch (membersError) {
-                console.error("[useEventAttendance] Error fetching members data:", membersError);
+              } else {
+                // If no saved attendance data, try to fetch from API
+                try {
+                  // The API service will now handle all errors and return an empty array
+                  // instead of throwing errors
+                  const result = await eventApi.getEventAttendance(eventId, signal);
 
-                // Fallback to using generic names if we can't get the actual names
+                  if (result.length > 0) {
+                    // If we got attendance data from the API, return it
+                    return result;
+                  } else {
+                    // If no attendance data from API, create default records for all members
+                    console.log('[useEventAttendance] No attendance data from API, creating default records for all members');
+
+                    // Create attendance records for all members with default values
+                    const defaultAttendance: EventAttendance[] = [];
+                    Object.entries(membersResponse).forEach(([division, members]) => {
+                      members.forEach(member => {
+                        if (member.id) {
+                          defaultAttendance.push({
+                            id: member.id, // Use member ID as temporary attendance record ID
+                            event_id: Number(eventId),
+                            member_id: member.id,
+                            member_name: member.full_name || "Tidak ada nama",
+                            division: division,
+                            status: "Hadir", // Default status
+                            notes: "",
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                          });
+                        }
+                      });
+                    });
+
+                    return defaultAttendance;
+                  }
+                } catch (apiError) {
+                  console.error(`[useEventAttendance] Error fetching attendance from API for event ID ${eventId}:`, apiError);
+
+                  // Create attendance records for all members with default values
+                  const defaultAttendance: EventAttendance[] = [];
+                  Object.entries(membersResponse).forEach(([division, members]) => {
+                    members.forEach(member => {
+                      if (member.id) {
+                        defaultAttendance.push({
+                          id: member.id, // Use member ID as temporary attendance record ID
+                          event_id: Number(eventId),
+                          member_id: member.id,
+                          member_name: member.full_name || "Tidak ada nama",
+                          division: division,
+                          status: "Hadir", // Default status
+                          notes: "",
+                          created_at: new Date().toISOString(),
+                          updated_at: new Date().toISOString()
+                        });
+                      }
+                    });
+                  });
+
+                  return defaultAttendance;
+                }
+              }
+            } catch (membersError) {
+              console.error("[useEventAttendance] Error fetching members data:", membersError);
+
+              // If we can't get members data but have saved attendance data, use generic names
+              if (savedAttendanceData.length > 0) {
                 return savedAttendanceData.map(item => ({
                   id: item.member_id,
                   event_id: Number(eventId),
                   member_id: item.member_id,
-                  member_name: `Anggota ${item.member_id}`,
+                  member_name: "Tidak ada nama", // Use a generic name
+                  division: "",
                   status: item.status,
                   notes: item.notes || "",
                   created_at: new Date().toISOString(),
                   updated_at: new Date().toISOString()
                 }));
               }
+
+              // If we can't get members data and don't have saved attendance data, try API
+              try {
+                const result = await eventApi.getEventAttendance(eventId, signal);
+                return result;
+              } catch (apiError) {
+                console.error(`[useEventAttendance] Error fetching attendance from API after members error:`, apiError);
+                return [];
+              }
             }
           } catch (storageError) {
             console.error("[useEventAttendance] Error loading saved attendance data:", storageError);
-          }
-        }
 
-        // If no localStorage data, try to fetch from API
-        try {
-          // The API service will now handle all errors and return an empty array
-          // instead of throwing errors
-          const result = await eventApi.getEventAttendance(eventId, signal)
-          return result
-        } catch (error) {
-          console.error(`Error fetching attendance for event ID ${eventId}:`, error)
-
-          // Log detailed error information
-          if (axios.isAxiosError(error)) {
-            if (error.response?.status === 404) {
-              console.log(`Attendance not found for event ID ${eventId} (404 response)`)
-            } else if (error.response?.status === 401) {
-              console.log(`Authentication required to fetch attendance for event ID ${eventId} (401 response)`)
-            } else if (error.response?.status === 403) {
-              console.log(`Permission denied to fetch attendance for event ID ${eventId} (403 response)`)
-            } else if (error.response?.status && error.response.status >= 500) {
-              console.log(`Server error (${error.response.status}) fetching attendance for event ID ${eventId}`)
+            // Try to fetch from API as fallback
+            try {
+              const result = await eventApi.getEventAttendance(eventId, signal);
+              return result;
+            } catch (apiError) {
+              console.error(`[useEventAttendance] Error fetching attendance from API after storage error:`, apiError);
+              return [];
             }
           }
-
-          // For any error, return an empty array to prevent UI from breaking
-          // This follows the requirement to return 0/empty when data can't be fetched
-          return []
+        } else {
+          // If we're in a server-side environment, just try the API
+          try {
+            const result = await eventApi.getEventAttendance(eventId, signal);
+            return result;
+          } catch (apiError) {
+            console.error(`[useEventAttendance] Error fetching attendance from API in server environment:`, apiError);
+            return [];
+          }
         }
       } catch (error) {
         console.error(`[useEventAttendance] Error in main try block:`, error);

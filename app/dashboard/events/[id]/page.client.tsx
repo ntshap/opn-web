@@ -50,8 +50,8 @@ export default function EventPageClient({ id }: { id: string }) {
   // Fetch event data with refetch capability
   const { data: event, isLoading, isError, error, refetch } = useEvent(eventId)
 
-  // Get attendance data
-  const { data: attendanceData } = useEventAttendance(eventId)
+  // Get attendance data with refetch capability
+  const { data: attendanceData, refetch: refetchAttendance } = useEventAttendance(eventId)
   const attendanceArray = Array.isArray(attendanceData) ? attendanceData : []
 
   // Get mutations
@@ -219,9 +219,13 @@ export default function EventPageClient({ id }: { id: string }) {
             attendees={attendanceArray.map(a => ({
               ...a,
               // Ensure we have a name field for backward compatibility
-              name: a.member_name || `Anggota ${a.member_id}`
+              name: a.member_name || "Tidak ada nama"
             }))}
-            onRefresh={() => refetch()}
+            onRefresh={() => {
+              // Refresh both event and attendance data
+              refetchAttendance();
+              refetch();
+            }}
           />
         </TabsContent>
         <TabsContent value="minutes" className="space-y-4">
