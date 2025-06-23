@@ -42,7 +42,7 @@ export function NotulensiEditorSimple({ eventId, initialContent, onSaved }: Notu
       // Try the PATCH endpoint first (more specific for minutes updates)
       try {
         const patchResponse = await fetch(
-          `https://beopn.mysesa.site/api/v1/events/${eventId}/minutes`,
+          `https://beopn.penaku.site/api/v1/events/${eventId}/minutes`,
           {
             method: 'PATCH',
             headers: {
@@ -81,7 +81,7 @@ export function NotulensiEditorSimple({ eventId, initialContent, onSaved }: Notu
 
       // Fall back to the PUT endpoint with just the minutes field
       const response = await fetch(
-        `https://beopn.mysesa.site/api/v1/events/${eventId}`,
+        `https://beopn.penaku.site/api/v1/events/${eventId}`,
         {
           method: 'PUT',
           headers: {

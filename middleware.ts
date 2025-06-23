@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { API_CONFIG } from './lib/config'
 
 // This function can be marked `async` if using `await` inside
 export async function middleware(request: NextRequest) {
@@ -10,7 +11,7 @@ export async function middleware(request: NextRequest) {
   const isLoginPage = request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/simple-login'
   const isApiRoute = request.nextUrl.pathname.startsWith('/api/')
   // Check if this is a direct image request to the backend
-  const isBackendImageRequest = request.nextUrl.host.includes('beopn.mysesa.site') &&
+  const isBackendImageRequest = request.nextUrl.host.includes('beopn.penaku.site') &&
     (request.nextUrl.pathname.includes('/uploads/') || request.nextUrl.pathname.includes('/images/'))
   // Check if this is a direct-image API request
   const isDirectImageRequest = request.nextUrl.pathname === '/api/v1/direct-image'
@@ -23,9 +24,6 @@ export async function middleware(request: NextRequest) {
 
   // Handle direct-image requests specially
   if (isDirectImageRequest) {
-    // Import the API_CONFIG
-    const { API_CONFIG } = require('./lib/config')
-
     // Get the path parameter
     const imagePath = request.nextUrl.searchParams.get('path')
 

@@ -1,8 +1,8 @@
 export const API_CONFIG = {
   // Use backend directly, no local proxy
-  BASE_URL: 'https://beopn.mysesa.site/api/v1',
+  BASE_URL: 'https://beopn.penaku.site/api/v1',
   // Backend URL for server-side API calls
-  BACKEND_URL: 'https://beopn.mysesa.site',
+  BACKEND_URL: 'https://beopn.penaku.site',
   TIMEOUT: {
     DEFAULT: 15000,
     FINANCE: 30000,

@@ -25,7 +25,7 @@ export const fileApi = {
       const cleanRelativePath = relativePath; // Already starts with / based on validation
 
       // Use the exact backend URL without any manipulation
-      const backendBaseUrl = 'https://beopn.mysesa.site';
+      const backendBaseUrl = 'https://beopn.penaku.site';
 
       // Construct the exact URL with double slash as required by the backend
       const fullUrl = `${backendBaseUrl}//${cleanRelativePath.startsWith('/') ? cleanRelativePath.substring(1) : cleanRelativePath}`;

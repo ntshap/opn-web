@@ -24,7 +24,7 @@ export default function SimpleLoginPage() {
       formData.append('grant_type', 'password');
 
       // Make API request
-      const response = await fetch('https://beopn.mysesa.site/api/v1/auth/token', {
+      const response = await fetch('https://beopn.penaku.site/api/v1/auth/token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',

@@ -287,12 +287,13 @@ export const uploadsApi = {
 
       // Log the full API URL for debugging
       // Use the standard URL format for all endpoints
-      // Format should be: https://beopn.mysesa.site/api/v1/uploads/finances/10/document
-      const apiEndpoint = `/uploads/finances/${id}/document`; // Standard format
+      // Format should be: https://beopn.penaku.site/api/v1/uploads/finances/10/document
+      const apiEndpoint = `/uploads/finances/${id}/document`;
+      // So the full URL will be: https://beopn.penaku.site/api/v1/uploads/finances/10/document
       console.log('[API-Uploads] Making API request to endpoint:', apiEndpoint);
 
       // The uploadsApiClient has baseURL: ${API_CONFIG.BACKEND_URL}/api/v1
-      // So the full URL will be: https://beopn.mysesa.site/api/v1/uploads/finances/10/document
+      // So the full URL will be: https://beopn.penaku.site/api/v1/uploads/finances/10/document
       // This is the standard format for all API endpoints
 
       // Use the uploadsApiClient for uploading document with PUT method instead of POST
@@ -427,12 +428,13 @@ export const uploadsApi = {
 
       // Log the full API URL for debugging
       // Use the standard URL format for all endpoints
-      // Format should be: https://beopn.mysesa.site/api/v1/uploads/finances/10/document
-      const apiEndpoint = `/uploads/finances/${id}/document`; // Standard format
+      // Format should be: https://beopn.penaku.site/api/v1/uploads/finances/10/document
+      const apiEndpoint = `/uploads/finances/${id}/document`;
+      // So the full URL will be: https://beopn.penaku.site/api/v1/uploads/finances/10/document
       console.log('[API-Uploads] Making API request to endpoint:', apiEndpoint);
 
       // The uploadsApiClient has baseURL: ${API_CONFIG.BACKEND_URL}/api/v1
-      // So the full URL will be: https://beopn.mysesa.site/api/v1/uploads/finances/10/document
+      // So the full URL will be: https://beopn.penaku.site/api/v1/uploads/finances/10/document
       // This is the standard format for all API endpoints
 
       // Use the uploadsApiClient for editing document
@@ -551,12 +553,13 @@ export const uploadsApi = {
 
       // Log the full API URL for debugging
       // Use the standard URL format for all endpoints
-      // Format should be: https://beopn.mysesa.site/api/v1/uploads/finances/10/document
-      const apiEndpoint = `/uploads/finances/${id}/document`; // Standard format
+      // Format should be: https://beopn.penaku.site/api/v1/uploads/finances/10/document
+      const apiEndpoint = `/uploads/finances/${id}/document`;
+      // So the full URL will be: https://beopn.penaku.site/api/v1/uploads/finances/10/document
       console.log('[API-Uploads] Making API request to endpoint:', apiEndpoint);
 
       // The uploadsApiClient has baseURL: ${API_CONFIG.BACKEND_URL}/api/v1
-      // So the full URL will be: https://beopn.mysesa.site/api/v1/uploads/finances/10/document
+      // So the full URL will be: https://beopn.penaku.site/api/v1/uploads/finances/10/document
       // This is the standard format for all API endpoints
 
       // Use the uploadsApiClient for deleting document

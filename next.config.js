@@ -11,7 +11,8 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'beopn.mysesa.site',
+        hostname: 'beopn.penaku.site',
+        port: '',
         pathname: '/**',
       },
       {
@@ -21,7 +22,7 @@ const nextConfig = {
       },
     ],
     unoptimized: true,
-    domains: ['beopn.mysesa.site', 'ui-avatars.com'],
+    domains: ['beopn.penaku.site', 'ui-avatars.com'],
   },
 
   // Add headers to allow CORS for images

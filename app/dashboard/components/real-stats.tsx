@@ -34,7 +34,7 @@ export function RealStats() {
           console.log("Fetching events for stats calculation...");
 
           // Make a direct fetch call with the updated API format
-          const response = await fetch('https://beopn.mysesa.site/api/v1/events/?page=1&limit=100', {
+          const response = await fetch('https://beopn.penaku.site/api/v1/events/?page=1&limit=100', {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${token}`,

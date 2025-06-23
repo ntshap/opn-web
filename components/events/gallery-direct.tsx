@@ -33,7 +33,7 @@ export function GalleryDirect({ eventId }: GalleryDirectProps) {
       console.log(`Fetching photos for event ${eventId}`)
 
       // Use direct backend URL instead of local API proxy
-      const response = await fetch(`https://beopn.mysesa.site/api/v1/events/${eventId}`, {
+      const response = await fetch(`https://beopn.penaku.site/api/v1/events/${eventId}`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`

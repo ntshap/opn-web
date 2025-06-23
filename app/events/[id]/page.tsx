@@ -10,7 +10,7 @@ export default async function EventDetailsPage({ params }: { params: { id: strin
 
   try {
     // Fetch the event data directly from the backend API
-    const event = await fetch(`https://beopn.mysesa.site/api/v1/events/${id}`, {
+    const event = await fetch(`https://beopn.penaku.site/api/v1/events/${id}`, {
       cache: 'no-store',
       headers: {
         'Content-Type': 'application/json'

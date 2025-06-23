@@ -337,8 +337,8 @@ export function FinanceDocumentGallery({
                             }
 
                             // Check if URL is absolute but missing the API path
-                            if (documentUrl.includes('beopn.mysesa.site') && !documentUrl.includes('/api/v1/')) {
-                              const fixedUrl = documentUrl.replace('beopn.mysesa.site/', 'beopn.mysesa.site/api/v1/');
+                            if (documentUrl.includes('beopn.penaku.site') && !documentUrl.includes('/api/v1/')) {
+                              const fixedUrl = documentUrl.replace('beopn.penaku.site/', 'beopn.penaku.site/api/v1/');
                               console.log("Fixing document URL format. New URL:", fixedUrl);
                               target.src = fixedUrl;
                               return;

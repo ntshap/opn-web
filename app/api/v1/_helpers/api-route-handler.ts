@@ -57,7 +57,7 @@ export async function handleApiRoute(
     const backendUrl = getBackendUrl();
 
     // All endpoints, including uploads, should use the standard format
-    // Format should be: https://beopn.mysesa.site/api/v1/uploads/finances/10/document
+    // Format should be: https://beopn.penaku.site/api/v1/uploads/finances/10/document
     const fullUrl = `${backendUrl}/api/v1${endpoint}`;
 
     // Log the URL for debugging

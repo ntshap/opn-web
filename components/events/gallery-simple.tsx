@@ -13,7 +13,7 @@ import { ProtectedImage } from "@/components/shared/ProtectedImage"
 import eventBus, { EVENTS } from "@/lib/event-bus"
 
 // Import the API base URL for image fallback
-const API_BASE_URL = "https://beopn.mysesa.site"
+const API_BASE_URL = "https://beopn.penaku.site"
 
 interface GallerySimpleProps {
   eventId: string | number

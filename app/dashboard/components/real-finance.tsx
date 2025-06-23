@@ -27,7 +27,7 @@ export function RealFinance() {
         }
 
         // Use direct backend URL instead of local API proxy
-        const response = await fetch('https://beopn.mysesa.site/api/v1/finance/summary', {
+        const response = await fetch('https://beopn.penaku.site/api/v1/finance/summary', {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`

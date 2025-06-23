@@ -47,9 +47,9 @@ export async function GET(request: NextRequest) {
     let fullUrl = url;
 
     // Ensure the URL has the correct format with double slashes after domain
-    if (fullUrl.includes('beopn.mysesa.site/') && !fullUrl.includes('beopn.mysesa.site//')) {
+    if (fullUrl.includes('beopn.penaku.site/') && !fullUrl.includes('beopn.penaku.site//')) {
       // Fix the URL to have double slashes
-      fullUrl = fullUrl.replace('beopn.mysesa.site/', 'beopn.mysesa.site//');
+      fullUrl = fullUrl.replace('beopn.penaku.site/', 'beopn.penaku.site//');
       console.log(`[Image Proxy] Fixed URL to have double slashes: ${fullUrl}`);
     }
 
